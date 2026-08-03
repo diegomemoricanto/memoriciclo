@@ -26,8 +26,9 @@ import {
 type Props = {
   initialSubjects: Subject[];
   initialPlan: Plan | null;
+  initialName?: string;
   onClose: () => void;
-  onFinish: (subjects: Subject[], plan: Plan) => void;
+  onFinish: (subjects: Subject[], plan: Plan, name: string) => void;
 };
 
 const defaultPlan: Plan = {
@@ -35,8 +36,15 @@ const defaultPlan: Plan = {
   studyDays: ["segunda", "terça", "quarta", "quinta", "sexta"],
 };
 
-export function PlanWizard({ initialSubjects, initialPlan, onClose, onFinish }: Props) {
+export function PlanWizard({
+  initialSubjects,
+  initialPlan,
+  initialName,
+  onClose,
+  onFinish,
+}: Props) {
   const [step, setStep] = useState(1);
+  const [name, setName] = useState(initialName ?? "");
   const [subjects, setSubjects] = useState<Subject[]>(
     initialSubjects.length
       ? initialSubjects
@@ -188,6 +196,18 @@ export function PlanWizard({ initialSubjects, initialPlan, onClose, onFinish }: 
           <div className="mt-5 max-w-2xl space-y-6">
             <div>
               <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Nome do planejamento (opcional)
+              </label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex.: Concurso TRT 2026"
+                className="mt-2 max-w-md"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Quantas horas, em média, pretende estudar por semana?
               </label>
               <Input
@@ -249,7 +269,11 @@ export function PlanWizard({ initialSubjects, initialPlan, onClose, onFinish }: 
               Avançar
             </Button>
           ) : (
-            <Button variant="mint" disabled={!canFinish} onClick={() => onFinish(subjects, plan)}>
+            <Button
+              variant="mint"
+              disabled={!canFinish}
+              onClick={() => onFinish(subjects, plan, name)}
+            >
               Concluir
             </Button>
           )}
