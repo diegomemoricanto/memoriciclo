@@ -20,7 +20,6 @@ import {
   addStudyLog,
   restartCycle,
   savePlanAndActivate,
-  setState,
   updateSession,
   useStudyState,
 } from "@/lib/study-store";

@@ -26,7 +26,7 @@ import {
 type Props = {
   initialSubjects: Subject[];
   initialPlan: Plan | null;
-  initialName?: string;
+  initialName?: string | undefined;
   onClose: () => void;
   onFinish: (subjects: Subject[], plan: Plan, name: string) => void;
 };
