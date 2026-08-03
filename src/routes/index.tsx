@@ -6,6 +6,7 @@ import {
   Check,
   Clock,
   Layers,
+  Network,
   Play,
   RotateCcw,
   Settings2,
