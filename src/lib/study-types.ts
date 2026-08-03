@@ -83,43 +83,43 @@ export function generateSessions(subjects: Subject[], plan: Plan): Session[] {
   const totalMinutes = plan.weeklyHours * 60;
   const min = Math.min(plan.minSessionMinutes, plan.maxSessionMinutes);
   const max = Math.max(plan.minSessionMinutes, plan.maxSessionMinutes);
-  const standard = Math.round((min + max) / 2);
+  if (subjects.length === 0 || totalMinutes <= 0) return [];
 
-  const queues = subjects
-    .map((subject) => {
-      const target = (totalMinutes * subjectWeight(subject, subjects)) / 100;
-      const chunks: number[] = [];
-      let remaining = Math.round(target);
-      while (remaining > 0) {
-        if (remaining <= max) {
-          chunks.push(remaining);
-          remaining = 0;
-        } else if (remaining - standard < min) {
-          chunks.push(Math.round(remaining / 2));
-          chunks.push(remaining - Math.round(remaining / 2));
-          remaining = 0;
-        } else {
-          chunks.push(standard);
-          remaining -= standard;
-        }
-      }
-      return { subject, chunks, credit: 0, weight: subjectWeight(subject, subjects) };
-    })
-    .filter((q) => q.chunks.length > 0);
+  // Duração padrão de cada sessão curta (dentro do intervalo min/max).
+  const sessionMinutes = Math.max(5, Math.round((min + max) / 2));
 
-  // weighted round-robin interleaving
+  // Número total de sessões curtas do ciclo.
+  const totalSessions = Math.max(
+    subjects.length,
+    Math.round(totalMinutes / sessionMinutes),
+  );
+
+  // Quantidade de sessões por disciplina, proporcional ao peso (%).
+  const queues = subjects.map((subject) => {
+    const weight = subjectWeight(subject, subjects);
+    return {
+      subject,
+      weight,
+      remaining: Math.max(1, Math.round((weight / 100) * totalSessions)),
+      counter: 0,
+    };
+  });
+
+  const totalWeight = queues.reduce((a, q) => a + q.weight, 0) || 1;
+
+  // Round-robin ponderado: intercala as disciplinas usando contador acumulado.
   const out: Session[] = [];
   let order = 0;
-  while (queues.some((q) => q.chunks.length > 0)) {
-    const active = queues.filter((q) => q.chunks.length > 0);
-    active.forEach((q) => (q.credit += q.weight));
-    const pick = active.reduce((a, b) => (b.credit > a.credit ? b : a));
-    pick.credit -= 100;
-    const minutes = pick.chunks.shift()!;
+  while (queues.some((q) => q.remaining > 0)) {
+    const active = queues.filter((q) => q.remaining > 0);
+    active.forEach((q) => (q.counter += q.weight));
+    const pick = active.reduce((a, b) => (b.counter > a.counter ? b : a));
+    pick.counter -= totalWeight;
+    pick.remaining -= 1;
     out.push({
       id: uid(),
       subjectId: pick.subject.id,
-      targetMinutes: minutes,
+      targetMinutes: Math.min(max, Math.max(min, sessionMinutes)),
       studiedSeconds: 0,
       completed: false,
       order: order++,

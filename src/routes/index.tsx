@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clock, Pause, Play, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, Clock, Play, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanWizard } from "@/components/study/PlanWizard";
+import { TimerDialog } from "@/components/study/TimerDialog";
 import { cn } from "@/lib/utils";
 import {
   addStudyLog,
@@ -17,6 +18,7 @@ import {
   generateSessions,
   subjectWeight,
   type Plan,
+  type Session,
   type Subject,
 } from "@/lib/study-types";
 
@@ -43,7 +45,6 @@ function Dashboard() {
   const { subjects, plan, sessions, cycleStats } = useStudyState();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const segmentRef = useRef(0);
 
   const subjectById = useMemo(
     () => Object.fromEntries(subjects.map((s) => [s.id, s])),
@@ -54,44 +55,24 @@ function Dashboard() {
   const totalStudiedSeconds = sessions.reduce((a, s) => a + s.studiedSeconds, 0);
   const progress = totalTargetSeconds ? (totalStudiedSeconds / totalTargetSeconds) * 100 : 0;
 
-  const flushSegment = (subjectId: string) => {
-    if (segmentRef.current > 0) {
-      addStudyLog(subjectId, segmentRef.current);
-      segmentRef.current = 0;
-    }
-  };
+  const activeSession = sessions.find((s) => s.id === activeId) ?? null;
 
-  useEffect(() => {
-    if (!activeId) return;
-    const interval = setInterval(() => {
-      const session = sessions.find((s) => s.id === activeId);
-      if (!session) return;
-      const next = session.studiedSeconds + 1;
-      segmentRef.current += 1;
-      const done = next >= session.targetMinutes * 60;
-      updateSession(session.id, {
-        studiedSeconds: done ? session.targetMinutes * 60 : next,
-        completed: done,
-      });
-      if (done) {
-        flushSegment(session.subjectId);
-        setActiveId(null);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [activeId, sessions]);
-
-  const toggleSession = (id: string) => {
+  const openSession = (id: string) => {
     const session = sessions.find((s) => s.id === id);
     if (!session || session.completed) return;
-    if (activeId === id) {
-      flushSegment(session.subjectId);
-      setActiveId(null);
-      return;
-    }
-    const previous = sessions.find((s) => s.id === activeId);
-    if (previous) flushSegment(previous.subjectId);
     setActiveId(id);
+  };
+
+  const savePartial = (session: Session, totalSeconds: number, delta: number) => {
+    if (delta > 0) addStudyLog(session.subjectId, delta);
+    updateSession(session.id, { studiedSeconds: totalSeconds });
+    setActiveId(null);
+  };
+
+  const finishSession = (session: Session, totalSeconds: number, delta: number) => {
+    if (delta > 0) addStudyLog(session.subjectId, delta);
+    updateSession(session.id, { studiedSeconds: totalSeconds, completed: true });
+    setActiveId(null);
   };
 
   const finishWizard = (nextSubjects: Subject[], nextPlan: Plan) => {
@@ -102,7 +83,6 @@ function Dashboard() {
       if (!ok) return;
     }
     setActiveId(null);
-    segmentRef.current = 0;
     setState({
       subjects: nextSubjects,
       plan: nextPlan,
@@ -226,9 +206,9 @@ function Dashboard() {
                         variant={running ? "mint" : "outline"}
                         size="icon"
                         aria-label={running ? "Pausar sessão" : "Iniciar sessão"}
-                        onClick={() => toggleSession(session.id)}
+                        onClick={() => openSession(session.id)}
                       >
-                        {running ? <Pause /> : <Play />}
+                        <Play />
                       </Button>
                     )}
                   </li>
@@ -245,7 +225,11 @@ function Dashboard() {
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Ciclo
           </h2>
-          <CycleDonut subjects={subjects} totalSeconds={totalTargetSeconds} />
+          <CycleDonut
+            sessions={sessions}
+            subjectById={subjectById}
+            totalSeconds={totalTargetSeconds}
+          />
           <div className="mt-5 flex h-3 overflow-hidden rounded-full">
             {subjects.map((s) => (
               <span
@@ -276,7 +260,7 @@ function Dashboard() {
         aria-label="Cronômetro"
         onClick={() => {
           const next = sessions.find((s) => !s.completed);
-          if (next) toggleSession(next.id);
+          if (next) openSession(next.id);
         }}
         className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-mint text-mint-foreground shadow-soft transition-transform hover:scale-105"
       >
@@ -291,15 +275,27 @@ function Dashboard() {
           onFinish={finishWizard}
         />
       )}
+
+      {activeSession && (
+        <TimerDialog
+          key={activeSession.id}
+          session={activeSession}
+          subject={subjectById[activeSession.subjectId]}
+          onClose={(total, delta) => savePartial(activeSession, total, delta)}
+          onFinish={(total, delta) => finishSession(activeSession, total, delta)}
+        />
+      )}
     </main>
   );
 }
 
 function CycleDonut({
-  subjects,
+  sessions,
+  subjectById,
   totalSeconds,
 }: {
-  subjects: Subject[];
+  sessions: Session[];
+  subjectById: Record<string, Subject | undefined>;
   totalSeconds: number;
 }) {
   const radius = 70;
@@ -309,20 +305,23 @@ function CycleDonut({
   return (
     <div className="relative mx-auto mt-4 h-48 w-48">
       <svg viewBox="0 0 180 180" className="h-full w-full -rotate-90">
-        {subjects.map((s) => {
-          const weight = subjectWeight(s, subjects);
-          const length = (weight / 100) * circumference;
-          const dash = `${length} ${circumference - length}`;
+        {sessions.map((session) => {
+          const share = totalSeconds
+            ? (session.targetMinutes * 60) / totalSeconds
+            : 1 / Math.max(1, sessions.length);
+          const length = share * circumference;
+          const gap = Math.min(1.5, length * 0.15);
+          const visible = Math.max(0.5, length - gap);
           const el = (
             <circle
-              key={s.id}
+              key={session.id}
               cx={90}
               cy={90}
               r={radius}
               fill="none"
-              stroke={s.color}
+              stroke={subjectById[session.subjectId]?.color ?? "#ddd"}
               strokeWidth={22}
-              strokeDasharray={dash}
+              strokeDasharray={`${visible} ${circumference - visible}`}
               strokeDashoffset={-offset}
             />
           );
