@@ -92,45 +92,48 @@ export function formatSeconds(totalSeconds: number) {
 
 export function generateSessions(subjects: Subject[], plan: Plan): Session[] {
   const totalMinutes = plan.weeklyHours * 60;
-  const min = Math.min(plan.minSessionMinutes, plan.maxSessionMinutes);
-  const max = Math.max(plan.minSessionMinutes, plan.maxSessionMinutes);
   if (subjects.length === 0 || totalMinutes <= 0) return [];
 
-  // Duração padrão de cada sessão curta (dentro do intervalo min/max).
-  const sessionMinutes = Math.max(5, Math.round((min + max) / 2));
-
-  // Número total de sessões curtas do ciclo.
-  const totalSessions = Math.max(
-    subjects.length,
-    Math.round(totalMinutes / sessionMinutes),
-  );
-
-  // Quantidade de sessões por disciplina, proporcional ao peso (%).
+  // 1) Para cada disciplina: tempo alvo total (peso % x horas semanais) quebrado
+  //    em sessões de duração ALEATÓRIA dentro do intervalo mín/máx da própria disciplina.
   const queues = subjects.map((subject) => {
     const weight = subjectWeight(subject, subjects);
-    return {
-      subject,
-      weight,
-      remaining: Math.max(1, Math.round((weight / 100) * totalSessions)),
-      counter: 0,
-    };
+    const { min, max } = subjectRange(subject);
+    let target = Math.round((weight / 100) * totalMinutes);
+    const durations: number[] = [];
+
+    while (target > 0) {
+      const draw = Math.round(min + Math.random() * (max - min));
+      if (target - draw < min) {
+        // Última sessão: ajusta para fechar o total exato.
+        durations.push(target);
+        target = 0;
+      } else {
+        durations.push(draw);
+        target -= draw;
+      }
+    }
+    if (!durations.length) durations.push(min);
+
+    return { subject, weight, durations, index: 0, counter: 0 };
   });
 
   const totalWeight = queues.reduce((a, q) => a + q.weight, 0) || 1;
 
-  // Round-robin ponderado: intercala as disciplinas usando contador acumulado.
+  // 2) Round-robin ponderado: intercala as sessões já dimensionadas.
   const out: Session[] = [];
   let order = 0;
-  while (queues.some((q) => q.remaining > 0)) {
-    const active = queues.filter((q) => q.remaining > 0);
+  while (queues.some((q) => q.index < q.durations.length)) {
+    const active = queues.filter((q) => q.index < q.durations.length);
     active.forEach((q) => (q.counter += q.weight));
     const pick = active.reduce((a, b) => (b.counter > a.counter ? b : a));
     pick.counter -= totalWeight;
-    pick.remaining -= 1;
+    const minutes = pick.durations[pick.index] ?? subjectRange(pick.subject).min;
+    pick.index += 1;
     out.push({
       id: uid(),
       subjectId: pick.subject.id,
-      targetMinutes: Math.min(max, Math.max(min, sessionMinutes)),
+      targetMinutes: minutes,
       studiedSeconds: 0,
       completed: false,
       order: order++,
