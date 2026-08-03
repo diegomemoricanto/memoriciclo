@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clock, Pause, Play, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, Clock, Play, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanWizard } from "@/components/study/PlanWizard";
+import { TimerDialog } from "@/components/study/TimerDialog";
 import { cn } from "@/lib/utils";
 import {
   addStudyLog,
@@ -17,6 +18,7 @@ import {
   generateSessions,
   subjectWeight,
   type Plan,
+  type Session,
   type Subject,
 } from "@/lib/study-types";
 
@@ -43,7 +45,6 @@ function Dashboard() {
   const { subjects, plan, sessions, cycleStats } = useStudyState();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const segmentRef = useRef(0);
 
   const subjectById = useMemo(
     () => Object.fromEntries(subjects.map((s) => [s.id, s])),
@@ -54,44 +55,24 @@ function Dashboard() {
   const totalStudiedSeconds = sessions.reduce((a, s) => a + s.studiedSeconds, 0);
   const progress = totalTargetSeconds ? (totalStudiedSeconds / totalTargetSeconds) * 100 : 0;
 
-  const flushSegment = (subjectId: string) => {
-    if (segmentRef.current > 0) {
-      addStudyLog(subjectId, segmentRef.current);
-      segmentRef.current = 0;
-    }
-  };
+  const activeSession = sessions.find((s) => s.id === activeId) ?? null;
 
-  useEffect(() => {
-    if (!activeId) return;
-    const interval = setInterval(() => {
-      const session = sessions.find((s) => s.id === activeId);
-      if (!session) return;
-      const next = session.studiedSeconds + 1;
-      segmentRef.current += 1;
-      const done = next >= session.targetMinutes * 60;
-      updateSession(session.id, {
-        studiedSeconds: done ? session.targetMinutes * 60 : next,
-        completed: done,
-      });
-      if (done) {
-        flushSegment(session.subjectId);
-        setActiveId(null);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [activeId, sessions]);
-
-  const toggleSession = (id: string) => {
+  const openSession = (id: string) => {
     const session = sessions.find((s) => s.id === id);
     if (!session || session.completed) return;
-    if (activeId === id) {
-      flushSegment(session.subjectId);
-      setActiveId(null);
-      return;
-    }
-    const previous = sessions.find((s) => s.id === activeId);
-    if (previous) flushSegment(previous.subjectId);
     setActiveId(id);
+  };
+
+  const savePartial = (session: Session, totalSeconds: number, delta: number) => {
+    if (delta > 0) addStudyLog(session.subjectId, delta);
+    updateSession(session.id, { studiedSeconds: totalSeconds });
+    setActiveId(null);
+  };
+
+  const finishSession = (session: Session, totalSeconds: number, delta: number) => {
+    if (delta > 0) addStudyLog(session.subjectId, delta);
+    updateSession(session.id, { studiedSeconds: totalSeconds, completed: true });
+    setActiveId(null);
   };
 
   const finishWizard = (nextSubjects: Subject[], nextPlan: Plan) => {
@@ -102,7 +83,6 @@ function Dashboard() {
       if (!ok) return;
     }
     setActiveId(null);
-    segmentRef.current = 0;
     setState({
       subjects: nextSubjects,
       plan: nextPlan,
