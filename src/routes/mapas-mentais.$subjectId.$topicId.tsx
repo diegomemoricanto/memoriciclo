@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSubjectTopics } from "@/lib/topics-store";
-import { createMindMap, flattenNodes, useMindMaps } from "@/lib/mindmaps-store";
+import { createMindMap, useMindMaps } from "@/lib/mindmaps-store";
+import { MindMapCanvas } from "@/components/study/MindMapCanvas";
 
 export const Route = createFileRoute("/mapas-mentais/$subjectId/$topicId")({
   head: () => ({
@@ -23,7 +24,6 @@ function TopicPage() {
   const { subjectId, topicId } = Route.useParams();
   const topic = (useSubjectTopics()[subjectId] ?? []).find((t) => t.id === topicId);
   const map = useMindMaps()[topicId];
-  const nodes = map ? flattenNodes(map) : [];
 
   return (
     <main className="mx-auto max-w-3xl px-4 pb-24 pt-6">
@@ -47,18 +47,8 @@ function TopicPage() {
           </Button>
         </div>
       ) : (
-        <div className="mt-6 rounded-2xl border bg-card/70 p-6 shadow-soft">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Nós salvos ({nodes.length})
-          </p>
-          <ul className="mt-3 space-y-1.5 text-sm">
-            {nodes.map((n) => (
-              <li key={n.id} style={{ paddingLeft: n.depth * 16 }}>
-                <span className="text-muted-foreground">{n.depth > 0 ? "└ " : ""}</span>
-                {n.label}
-              </li>
-            ))}
-          </ul>
+        <div className="mt-6 rounded-2xl border bg-card/70 p-3 shadow-soft">
+          <MindMapCanvas root={map} editing={false} />
         </div>
       )}
     </main>
