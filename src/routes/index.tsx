@@ -1,6 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
-import { Check, Clock, Play, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
+import {
+  BarChart3,
+  Check,
+  Clock,
+  Layers,
+  Play,
+  RotateCcw,
+  Settings2,
+  SlidersHorizontal,
+  Timer,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanWizard } from "@/components/study/PlanWizard";
 import { TimerDialog } from "@/components/study/TimerDialog";
@@ -8,7 +19,7 @@ import { cn } from "@/lib/utils";
 import {
   addStudyLog,
   restartCycle,
-  setState,
+  savePlanAndActivate,
   updateSession,
   useStudyState,
 } from "@/lib/study-store";
@@ -42,7 +53,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const { subjects, plan, sessions, cycleStats } = useStudyState();
+  const { subjects, plan, sessions, cycleStats, savedPlans, activePlanId } = useStudyState();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [liveSeconds, setLiveSeconds] = useState<number | null>(null);
@@ -81,7 +92,9 @@ function Dashboard() {
 
   const handleTick = useCallback((total: number) => setLiveSeconds(total), []);
 
-  const finishWizard = (nextSubjects: Subject[], nextPlan: Plan) => {
+  const activeName = savedPlans.find((p) => p.id === activePlanId)?.name;
+
+  const finishWizard = (nextSubjects: Subject[], nextPlan: Plan, name: string) => {
     if (totalStudiedSeconds > 0 && sessions.length > 0) {
       const ok = window.confirm(
         "Você já tem progresso neste ciclo. Regerar a sequência vai zerar o progresso atual. Continuar?",
@@ -89,25 +102,21 @@ function Dashboard() {
       if (!ok) return;
     }
     setActiveId(null);
-    setState({
+    savePlanAndActivate({
+      id: activePlanId,
+      name,
       subjects: nextSubjects,
       plan: nextPlan,
       sessions: generateSessions(nextSubjects, nextPlan),
+      cycleStats,
     });
     setWizardOpen(false);
   };
 
   if (!plan || sessions.length === 0) {
     return (
-      <main className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center px-4 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Painel de Estudos</h1>
-        <p className="mt-3 text-muted-foreground">
-          Crie seu planejamento para gerar um ciclo de estudos ponderado pelo peso de cada
-          disciplina.
-        </p>
-        <Button variant="mint" size="pill" className="mt-6" onClick={() => setWizardOpen(true)}>
-          Criar Planejamento
-        </Button>
+      <>
+        <Landing hasSaved={savedPlans.length > 0} onCreate={() => setWizardOpen(true)} />
         {wizardOpen && (
           <PlanWizard
             initialSubjects={subjects}
@@ -116,14 +125,17 @@ function Dashboard() {
             onFinish={finishWizard}
           />
         )}
-      </main>
+      </>
     );
   }
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-24 pt-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight">Planejamento</h1>
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Planejamento</h1>
+          {activeName && <p className="mt-1 text-sm text-muted-foreground">{activeName}</p>}
+        </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -297,6 +309,7 @@ function Dashboard() {
         <PlanWizard
           initialSubjects={subjects}
           initialPlan={plan}
+          initialName={activeName}
           onClose={() => setWizardOpen(false)}
           onFinish={finishWizard}
         />
@@ -313,6 +326,94 @@ function Dashboard() {
         />
       )}
     </main>
+  );
+}
+
+function Landing({ hasSaved, onCreate }: { hasSaved: boolean; onCreate: () => void }) {
+  const features = [
+    { icon: Layers, title: "Ciclos ponderados por peso", text: "Importância × conhecimento" },
+    { icon: Timer, title: "Cronômetro por sessão", text: "Alerta ao bater o alvo" },
+    { icon: BarChart3, title: "Histórico de horas", text: "Por disciplina e por dia" },
+  ];
+  return (
+    <main className="relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-mint/25 via-background to-primary/10" />
+      <div className="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full bg-mint/20 blur-3xl" />
+      <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+            <span className="h-2 w-2 rounded-full bg-mint" /> 100% no seu navegador
+          </span>
+          <h1 className="mt-5 text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+            Painel de{" "}
+            <span className="bg-gradient-to-r from-mint to-primary bg-clip-text text-transparent">
+              Estudos
+            </span>
+          </h1>
+          <p className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
+            Monte um ciclo de revisão inteligente: cada disciplina entra na sequência de acordo
+            com o peso dela, em sessões curtas e cronometradas.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button variant="mint" size="pill" onClick={onCreate}>
+              Criar Planejamento
+            </Button>
+            {hasSaved && (
+              <Button variant="outline" size="pill" asChild>
+                <Link to="/planejamentos">Meus Planejamentos</Link>
+              </Button>
+            )}
+          </div>
+          <div className="mt-10 grid gap-3 sm:grid-cols-3">
+            {features.map((f) => (
+              <div
+                key={f.title}
+                className="rounded-2xl border bg-card/70 p-4 shadow-soft backdrop-blur"
+              >
+                <f.icon className="size-5 text-mint-foreground" />
+                <p className="mt-3 text-sm font-semibold leading-snug">{f.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{f.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <LandingWheel />
+      </div>
+    </main>
+  );
+}
+
+function LandingWheel() {
+  const slices = 18;
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius;
+  const seg = circumference / slices;
+  const palette = ["#9EE6CF", "#A8D0F5", "#FFC9A8", "#CDB8F5", "#FFE29A", "#F7B8DC"];
+  return (
+    <div className="relative mx-auto aspect-square w-full max-w-[420px]">
+      <div className="absolute inset-6 rounded-full bg-mint/20 blur-2xl" />
+      <svg viewBox="0 0 180 180" className="relative h-full w-full animate-[spin_28s_linear_infinite]">
+        {Array.from({ length: slices }).map((_, i) => (
+          <circle
+            key={i}
+            cx={90}
+            cy={90}
+            r={radius}
+            fill="none"
+            stroke={palette[i % palette.length]}
+            strokeWidth={26}
+            strokeDasharray={`${seg - 3} ${circumference - seg + 3}`}
+            strokeDashoffset={-i * seg}
+          />
+        ))}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+        <span className="text-3xl font-semibold">Ciclo</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          intercalado
+        </span>
+      </div>
+    </div>
   );
 }
 

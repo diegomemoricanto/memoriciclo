@@ -2,12 +2,24 @@ import { useSyncExternalStore } from "react";
 import type { CycleStats, Plan, Session, StudyLog, Subject } from "./study-types";
 import { uid } from "./study-types";
 
+export type SavedPlan = {
+  id: string;
+  name: string;
+  createdAt: string;
+  subjects: Subject[];
+  plan: Plan;
+  sessions: Session[];
+  cycleStats: CycleStats;
+};
+
 export type StudyState = {
   subjects: Subject[];
   plan: Plan | null;
   sessions: Session[];
   cycleStats: CycleStats;
   studyLogs: StudyLog[];
+  savedPlans: SavedPlan[];
+  activePlanId: string | null;
 };
 
 const KEY = "painel-estudos-v1";
@@ -18,6 +30,8 @@ const empty: StudyState = {
   sessions: [],
   cycleStats: { completedCycles: 0 },
   studyLogs: [],
+  savedPlans: [],
+  activePlanId: null,
 };
 
 let state: StudyState = empty;
@@ -64,6 +78,100 @@ export function useStudyState(): StudyState {
 
 export function setState(next: Partial<StudyState>) {
   state = { ...state, ...next };
+  syncActivePlan();
+  persist();
+  emit();
+}
+
+/** mantém o planejamento salvo ativo em sincronia com o estado do dashboard */
+function syncActivePlan() {
+  if (!state.activePlanId || !state.plan) return;
+  state.savedPlans = state.savedPlans.map((p) =>
+    p.id === state.activePlanId
+      ? {
+          ...p,
+          subjects: state.subjects,
+          plan: state.plan as Plan,
+          sessions: state.sessions,
+          cycleStats: state.cycleStats,
+        }
+      : p,
+  );
+}
+
+/** cria (ou atualiza) um planejamento salvo e o define como ativo — persiste imediatamente */
+export function savePlanAndActivate(args: {
+  id?: string | null;
+  name?: string;
+  subjects: Subject[];
+  plan: Plan;
+  sessions: Session[];
+  cycleStats?: CycleStats;
+}) {
+  const existing = args.id ? state.savedPlans.find((p) => p.id === args.id) : undefined;
+  const createdAt = existing?.createdAt ?? new Date().toISOString();
+  const id = existing?.id ?? uid();
+  const name =
+    (args.name?.trim() || existing?.name) ??
+    `Planejamento de ${new Date(createdAt).toLocaleDateString("pt-BR")}`;
+  const cycleStats = args.cycleStats ?? { completedCycles: 0 };
+  const entry: SavedPlan = {
+    id,
+    name,
+    createdAt,
+    subjects: args.subjects,
+    plan: args.plan,
+    sessions: args.sessions,
+    cycleStats,
+  };
+
+  state = {
+    ...state,
+    subjects: args.subjects,
+    plan: args.plan,
+    sessions: args.sessions,
+    cycleStats,
+    activePlanId: id,
+    savedPlans: existing
+      ? state.savedPlans.map((p) => (p.id === id ? entry : p))
+      : [...state.savedPlans, entry],
+  };
+  persist();
+  emit();
+  return id;
+}
+
+export function openPlan(id: string) {
+  const found = state.savedPlans.find((p) => p.id === id);
+  if (!found) return;
+  state = {
+    ...state,
+    activePlanId: id,
+    subjects: found.subjects,
+    plan: found.plan,
+    sessions: found.sessions,
+    cycleStats: found.cycleStats,
+  };
+  persist();
+  emit();
+}
+
+export function deletePlan(id: string) {
+  const savedPlans = state.savedPlans.filter((p) => p.id !== id);
+  const clearing = state.activePlanId === id;
+  state = {
+    ...state,
+    savedPlans,
+    ...(clearing
+      ? {
+          activePlanId: null,
+          subjects: [],
+          plan: null,
+          sessions: [],
+          cycleStats: { completedCycles: 0 },
+        }
+      : {}),
+  };
   persist();
   emit();
 }
