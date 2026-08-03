@@ -77,11 +77,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Painel de Estudos" },
+      {
+        name: "description",
+        content: "Ciclo de estudos com pesos por disciplina e cronômetro por sessão.",
+      },
+      { property: "og:title", content: "Painel de Estudos" },
+      {
+        property: "og:description",
+        content: "Ciclo de estudos com pesos por disciplina e cronômetro por sessão.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
@@ -92,6 +97,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -119,8 +130,25 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="min-h-screen font-sans">
+        <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 pt-5">
+          <Link
+            to="/"
+            activeOptions={{ exact: true }}
+            className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
+          >
+            Planejamento
+          </Link>
+          <Link
+            to="/historico"
+            className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
+          >
+            Histórico
+          </Link>
+        </nav>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </div>
     </QueryClientProvider>
   );
 }
