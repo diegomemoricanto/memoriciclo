@@ -56,8 +56,8 @@ export const SESSION_OPTIONS = [15, 30, 45, 60, 75, 90, 105, 120];
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
-export function colorForIndex(i: number) {
-  return SUBJECT_PALETTE[i % SUBJECT_PALETTE.length];
+export function colorForIndex(i: number): string {
+  return SUBJECT_PALETTE[i % SUBJECT_PALETTE.length] as string;
 }
 
 export function subjectWeight(subject: Subject, subjects: Subject[]) {
