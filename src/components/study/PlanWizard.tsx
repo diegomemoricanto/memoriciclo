@@ -17,6 +17,8 @@ import {
   colorForIndex,
   subjectWeight,
   uid,
+  DEFAULT_MIN_SESSION,
+  DEFAULT_MAX_SESSION,
   type Plan,
   type Subject,
 } from "@/lib/study-types";
@@ -31,8 +33,6 @@ type Props = {
 const defaultPlan: Plan = {
   weeklyHours: 25,
   studyDays: ["segunda", "terça", "quarta", "quinta", "sexta"],
-  minSessionMinutes: 30,
-  maxSessionMinutes: 90,
 };
 
 export function PlanWizard({ initialSubjects, initialPlan, onClose, onFinish }: Props) {
@@ -41,8 +41,24 @@ export function PlanWizard({ initialSubjects, initialPlan, onClose, onFinish }: 
     initialSubjects.length
       ? initialSubjects
       : [
-          { id: uid(), name: "Português", color: colorForIndex(0), importance: 3, knowledge: 3 },
-          { id: uid(), name: "Matemática", color: colorForIndex(1), importance: 3, knowledge: 3 },
+          {
+            id: uid(),
+            name: "Português",
+            color: colorForIndex(0),
+            importance: 3,
+            knowledge: 3,
+            minSessionMinutes: DEFAULT_MIN_SESSION,
+            maxSessionMinutes: DEFAULT_MAX_SESSION,
+          },
+          {
+            id: uid(),
+            name: "Matemática",
+            color: colorForIndex(1),
+            importance: 3,
+            knowledge: 3,
+            minSessionMinutes: DEFAULT_MIN_SESSION,
+            maxSessionMinutes: DEFAULT_MAX_SESSION,
+          },
         ],
   );
   const [plan, setPlan] = useState<Plan>(initialPlan ?? defaultPlan);
@@ -59,6 +75,8 @@ export function PlanWizard({ initialSubjects, initialPlan, onClose, onFinish }: 
         color: colorForIndex(prev.length),
         importance: 3,
         knowledge: 3,
+        minSessionMinutes: DEFAULT_MIN_SESSION,
+        maxSessionMinutes: DEFAULT_MAX_SESSION,
       },
     ]);
 
@@ -121,6 +139,21 @@ export function PlanWizard({ initialSubjects, initialPlan, onClose, onFinish }: 
                       value={s.knowledge}
                       onChange={(v) => patchSubject(s.id, { knowledge: v })}
                     />
+                    <div className="mt-4">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Duração da sessão (mín / máx)
+                      </span>
+                      <div className="mt-2 flex gap-2">
+                        <MinutesSelect
+                          value={s.minSessionMinutes ?? DEFAULT_MIN_SESSION}
+                          onChange={(v) => patchSubject(s.id, { minSessionMinutes: v })}
+                        />
+                        <MinutesSelect
+                          value={s.maxSessionMinutes ?? DEFAULT_MAX_SESSION}
+                          onChange={(v) => patchSubject(s.id, { maxSessionMinutes: v })}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -200,21 +233,10 @@ export function PlanWizard({ initialSubjects, initialPlan, onClose, onFinish }: 
               </div>
             </div>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Qual duração mínima e máxima você deseja para uma sessão de estudos?
-              </p>
-              <div className="mt-2 flex gap-3">
-                <MinutesSelect
-                  value={plan.minSessionMinutes}
-                  onChange={(v) => setPlan({ ...plan, minSessionMinutes: v })}
-                />
-                <MinutesSelect
-                  value={plan.maxSessionMinutes}
-                  onChange={(v) => setPlan({ ...plan, maxSessionMinutes: v })}
-                />
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              A duração mínima e máxima de cada sessão agora é definida por disciplina, na
+              etapa 1.
+            </p>
           </div>
         )}
 
@@ -275,7 +297,7 @@ function MinutesSelect({
 }) {
   return (
     <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
-      <SelectTrigger className="w-36">
+      <SelectTrigger className="w-full">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
