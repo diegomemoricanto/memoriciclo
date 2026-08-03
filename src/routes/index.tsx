@@ -6,6 +6,7 @@ import {
   Check,
   Clock,
   Layers,
+  Network,
   Play,
   RotateCcw,
   Settings2,
@@ -363,6 +364,11 @@ function Landing({ hasSaved, onCreate }: { hasSaved: boolean; onCreate: () => vo
                 <Link to="/planejamentos">Meus Planejamentos</Link>
               </Button>
             )}
+            <Button variant="outline" size="pill" asChild>
+              <Link to="/mapas-mentais">
+                <Network /> Mapas Mentais
+              </Link>
+            </Button>
           </div>
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
             {features.map((f) => (

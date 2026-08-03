@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as PlanejamentosRouteImport } from './routes/planejamentos'
+import { Route as MapasMentaisIndexRouteImport } from './routes/mapas-mentais.index'
+import { Route as MapasMentaisSubjectIdIndexRouteImport } from './routes/mapas-mentais.$subjectId.index'
+import { Route as MapasMentaisSubjectIdTopicIdRouteImport } from './routes/mapas-mentais.$subjectId.$topicId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +31,83 @@ const PlanejamentosRoute = PlanejamentosRouteImport.update({
   path: '/planejamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MapasMentaisIndexRoute = MapasMentaisIndexRouteImport.update({
+  id: '/mapas-mentais/',
+  path: '/mapas-mentais/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapasMentaisSubjectIdIndexRoute =
+  MapasMentaisSubjectIdIndexRouteImport.update({
+    id: '/mapas-mentais/$subjectId/',
+    path: '/mapas-mentais/$subjectId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const MapasMentaisSubjectIdTopicIdRoute =
+  MapasMentaisSubjectIdTopicIdRouteImport.update({
+    id: '/mapas-mentais/$subjectId/$topicId',
+    path: '/mapas-mentais/$subjectId/$topicId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/historico': typeof HistoricoRoute
   '/planejamentos': typeof PlanejamentosRoute
+  '/mapas-mentais/': typeof MapasMentaisIndexRoute
+  '/mapas-mentais/$subjectId/$topicId': typeof MapasMentaisSubjectIdTopicIdRoute
+  '/mapas-mentais/$subjectId/': typeof MapasMentaisSubjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/historico': typeof HistoricoRoute
   '/planejamentos': typeof PlanejamentosRoute
+  '/mapas-mentais': typeof MapasMentaisIndexRoute
+  '/mapas-mentais/$subjectId/$topicId': typeof MapasMentaisSubjectIdTopicIdRoute
+  '/mapas-mentais/$subjectId': typeof MapasMentaisSubjectIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/historico': typeof HistoricoRoute
   '/planejamentos': typeof PlanejamentosRoute
+  '/mapas-mentais/': typeof MapasMentaisIndexRoute
+  '/mapas-mentais/$subjectId/$topicId': typeof MapasMentaisSubjectIdTopicIdRoute
+  '/mapas-mentais/$subjectId/': typeof MapasMentaisSubjectIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/historico' | '/planejamentos'
+  fullPaths:
+    | '/'
+    | '/historico'
+    | '/planejamentos'
+    | '/mapas-mentais/'
+    | '/mapas-mentais/$subjectId/$topicId'
+    | '/mapas-mentais/$subjectId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/historico' | '/planejamentos'
-  id: '__root__' | '/' | '/historico' | '/planejamentos'
+  to:
+    | '/'
+    | '/historico'
+    | '/planejamentos'
+    | '/mapas-mentais'
+    | '/mapas-mentais/$subjectId/$topicId'
+    | '/mapas-mentais/$subjectId'
+  id:
+    | '__root__'
+    | '/'
+    | '/historico'
+    | '/planejamentos'
+    | '/mapas-mentais/'
+    | '/mapas-mentais/$subjectId/$topicId'
+    | '/mapas-mentais/$subjectId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoricoRoute: typeof HistoricoRoute
   PlanejamentosRoute: typeof PlanejamentosRoute
+  MapasMentaisIndexRoute: typeof MapasMentaisIndexRoute
+  MapasMentaisSubjectIdTopicIdRoute: typeof MapasMentaisSubjectIdTopicIdRoute
+  MapasMentaisSubjectIdIndexRoute: typeof MapasMentaisSubjectIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +133,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlanejamentosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mapas-mentais/': {
+      id: '/mapas-mentais/'
+      path: '/mapas-mentais'
+      fullPath: '/mapas-mentais/'
+      preLoaderRoute: typeof MapasMentaisIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mapas-mentais/$subjectId/': {
+      id: '/mapas-mentais/$subjectId/'
+      path: '/mapas-mentais/$subjectId'
+      fullPath: '/mapas-mentais/$subjectId/'
+      preLoaderRoute: typeof MapasMentaisSubjectIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mapas-mentais/$subjectId/$topicId': {
+      id: '/mapas-mentais/$subjectId/$topicId'
+      path: '/mapas-mentais/$subjectId/$topicId'
+      fullPath: '/mapas-mentais/$subjectId/$topicId'
+      preLoaderRoute: typeof MapasMentaisSubjectIdTopicIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +161,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoricoRoute: HistoricoRoute,
   PlanejamentosRoute: PlanejamentosRoute,
+  MapasMentaisIndexRoute: MapasMentaisIndexRoute,
+  MapasMentaisSubjectIdTopicIdRoute: MapasMentaisSubjectIdTopicIdRoute,
+  MapasMentaisSubjectIdIndexRoute: MapasMentaisSubjectIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
