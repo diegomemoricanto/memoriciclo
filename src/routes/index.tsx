@@ -1,24 +1,341 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Clock, Pause, Play, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PlanWizard } from "@/components/study/PlanWizard";
+import { cn } from "@/lib/utils";
+import {
+  addStudyLog,
+  restartCycle,
+  setState,
+  updateSession,
+  useStudyState,
+} from "@/lib/study-store";
+import {
+  formatMinutes,
+  formatSeconds,
+  generateSessions,
+  subjectWeight,
+  type Plan,
+  type Subject,
+} from "@/lib/study-types";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Painel de Estudos — Ciclo de revisão e cronômetro" },
+      {
+        name: "description",
+        content:
+          "Monte um ciclo de estudos ponderado pelo peso de cada disciplina e cronometre cada sessão. Tudo salvo no seu navegador.",
+      },
+      { property: "og:title", content: "Painel de Estudos — Ciclo de revisão e cronômetro" },
+      {
+        property: "og:description",
+        content: "Cronograma cíclico de revisão com pesos por disciplina e cronômetro por sessão.",
+      },
+    ],
+  }),
+  component: Dashboard,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Dashboard() {
+  const { subjects, plan, sessions, cycleStats } = useStudyState();
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const segmentRef = useRef(0);
+
+  const subjectById = useMemo(
+    () => Object.fromEntries(subjects.map((s) => [s.id, s])),
+    [subjects],
+  );
+
+  const totalTargetSeconds = sessions.reduce((a, s) => a + s.targetMinutes * 60, 0);
+  const totalStudiedSeconds = sessions.reduce((a, s) => a + s.studiedSeconds, 0);
+  const progress = totalTargetSeconds ? (totalStudiedSeconds / totalTargetSeconds) * 100 : 0;
+
+  const flushSegment = (subjectId: string) => {
+    if (segmentRef.current > 0) {
+      addStudyLog(subjectId, segmentRef.current);
+      segmentRef.current = 0;
+    }
+  };
+
+  useEffect(() => {
+    if (!activeId) return;
+    const interval = setInterval(() => {
+      const session = sessions.find((s) => s.id === activeId);
+      if (!session) return;
+      const next = session.studiedSeconds + 1;
+      segmentRef.current += 1;
+      const done = next >= session.targetMinutes * 60;
+      updateSession(session.id, {
+        studiedSeconds: done ? session.targetMinutes * 60 : next,
+        completed: done,
+      });
+      if (done) {
+        flushSegment(session.subjectId);
+        setActiveId(null);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeId, sessions]);
+
+  const toggleSession = (id: string) => {
+    const session = sessions.find((s) => s.id === id);
+    if (!session || session.completed) return;
+    if (activeId === id) {
+      flushSegment(session.subjectId);
+      setActiveId(null);
+      return;
+    }
+    const previous = sessions.find((s) => s.id === activeId);
+    if (previous) flushSegment(previous.subjectId);
+    setActiveId(id);
+  };
+
+  const finishWizard = (nextSubjects: Subject[], nextPlan: Plan) => {
+    if (totalStudiedSeconds > 0 && sessions.length > 0) {
+      const ok = window.confirm(
+        "Você já tem progresso neste ciclo. Regerar a sequência vai zerar o progresso atual. Continuar?",
+      );
+      if (!ok) return;
+    }
+    setActiveId(null);
+    segmentRef.current = 0;
+    setState({
+      subjects: nextSubjects,
+      plan: nextPlan,
+      sessions: generateSessions(nextSubjects, nextPlan),
+    });
+    setWizardOpen(false);
+  };
+
+  if (!plan || sessions.length === 0) {
+    return (
+      <main className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center px-4 text-center">
+        <h1 className="text-3xl font-semibold tracking-tight">Painel de Estudos</h1>
+        <p className="mt-3 text-muted-foreground">
+          Crie seu planejamento para gerar um ciclo de estudos ponderado pelo peso de cada
+          disciplina.
+        </p>
+        <Button variant="mint" size="pill" className="mt-6" onClick={() => setWizardOpen(true)}>
+          Criar Planejamento
+        </Button>
+        {wizardOpen && (
+          <PlanWizard
+            initialSubjects={subjects}
+            initialPlan={plan}
+            onClose={() => setWizardOpen(false)}
+            onFinish={finishWizard}
+          />
+        )}
+      </main>
+    );
+  }
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <main className="mx-auto max-w-6xl px-4 pb-24 pt-6">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-semibold tracking-tight">Planejamento</h1>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setActiveId(null);
+              restartCycle();
+            }}
+          >
+            <RotateCcw /> Recomeçar Ciclo
+          </Button>
+          <Button variant="mint" onClick={() => setWizardOpen(true)}>
+            <Settings2 /> Editar Planejamento
+          </Button>
+        </div>
+      </header>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_340px]">
+        <div className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-[auto_1fr]">
+            <section className="flex flex-col items-center rounded-2xl bg-card p-5 shadow-soft">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Ciclos completos
+              </p>
+              <div className="mt-3 flex h-24 w-24 items-center justify-center rounded-full border-4 border-mint text-3xl font-semibold">
+                {cycleStats.completedCycles}
+              </div>
+            </section>
+
+            <section className="rounded-2xl bg-card p-5 shadow-soft">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Progresso
+              </p>
+              <p className="mt-2 text-lg font-semibold">
+                {formatSeconds(totalStudiedSeconds)} / {formatSeconds(totalTargetSeconds)}
+              </p>
+              <div className="mt-3 h-3 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-mint transition-all"
+                  style={{ width: `${Math.min(100, progress)}%` }}
+                />
+              </div>
+            </section>
+          </div>
+
+          <section className="rounded-2xl bg-card p-5 shadow-soft">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Sequência dos estudos
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {sessions.map((session) => {
+                const subject = subjectById[session.subjectId];
+                const running = activeId === session.id;
+                return (
+                  <li
+                    key={session.id}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border bg-background p-3",
+                      session.completed && "opacity-70",
+                      running && "border-mint",
+                    )}
+                  >
+                    <span
+                      className="h-10 w-1.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: subject?.color ?? "#ddd" }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={cn(
+                          "truncate text-sm font-medium",
+                          session.completed && "line-through",
+                        )}
+                      >
+                        {subject?.name ?? "Disciplina"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatSeconds(session.studiedSeconds)} /{" "}
+                        {formatMinutes(session.targetMinutes)}
+                      </p>
+                    </div>
+                    {session.completed ? (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mint/30">
+                        <Check className="size-4 text-mint-foreground" />
+                      </span>
+                    ) : (
+                      <Button
+                        variant={running ? "mint" : "outline"}
+                        size="icon"
+                        aria-label={running ? "Pausar sessão" : "Iniciar sessão"}
+                        onClick={() => toggleSession(session.id)}
+                      >
+                        {running ? <Pause /> : <Play />}
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <Button variant="outline" className="mt-4 w-full" onClick={() => setWizardOpen(true)}>
+              <SlidersHorizontal /> Ajustar Ciclo
+            </Button>
+          </section>
+        </div>
+
+        <section className="h-fit rounded-2xl bg-card p-5 shadow-soft">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Ciclo
+          </h2>
+          <CycleDonut subjects={subjects} totalSeconds={totalTargetSeconds} />
+          <div className="mt-5 flex h-3 overflow-hidden rounded-full">
+            {subjects.map((s) => (
+              <span
+                key={s.id}
+                style={{ width: `${subjectWeight(s, subjects)}%`, backgroundColor: s.color }}
+              />
+            ))}
+          </div>
+          <ul className="mt-4 space-y-2">
+            {subjects.map((s) => (
+              <li key={s.id} className="flex items-center gap-2 text-sm">
+                <span
+                  className="h-3 w-3 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                />
+                <span className="flex-1 truncate">{s.name}</span>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {subjectWeight(s, subjects).toFixed(1)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <button
+        type="button"
+        aria-label="Cronômetro"
+        onClick={() => {
+          const next = sessions.find((s) => !s.completed);
+          if (next) toggleSession(next.id);
+        }}
+        className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-mint text-mint-foreground shadow-soft transition-transform hover:scale-105"
+      >
+        <Clock />
+      </button>
+
+      {wizardOpen && (
+        <PlanWizard
+          initialSubjects={subjects}
+          initialPlan={plan}
+          onClose={() => setWizardOpen(false)}
+          onFinish={finishWizard}
+        />
+      )}
+    </main>
+  );
+}
+
+function CycleDonut({
+  subjects,
+  totalSeconds,
+}: {
+  subjects: Subject[];
+  totalSeconds: number;
+}) {
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+
+  return (
+    <div className="relative mx-auto mt-4 h-48 w-48">
+      <svg viewBox="0 0 180 180" className="h-full w-full -rotate-90">
+        {subjects.map((s) => {
+          const weight = subjectWeight(s, subjects);
+          const length = (weight / 100) * circumference;
+          const dash = `${length} ${circumference - length}`;
+          const el = (
+            <circle
+              key={s.id}
+              cx={90}
+              cy={90}
+              r={radius}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={22}
+              strokeDasharray={dash}
+              strokeDashoffset={-offset}
+            />
+          );
+          offset += length;
+          return el;
+        })}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-xl font-semibold">{formatSeconds(totalSeconds)}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          por ciclo
+        </span>
+      </div>
     </div>
   );
 }
