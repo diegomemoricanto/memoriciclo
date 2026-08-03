@@ -39,7 +39,7 @@ function PlansPage() {
   const finishWizard = (subjects: Subject[], plan: Plan, name: string) => {
     savePlanAndActivate({ subjects, plan, sessions: generateSessions(subjects, plan), name });
     setWizardOpen(false);
-    navigate({ to: "/" });
+    navigate({ to: "/planejamento" });
   };
 
   return (
@@ -113,7 +113,7 @@ function PlansPage() {
                   className="mt-4 w-full"
                   onClick={() => {
                     openPlan(p.id);
-                    navigate({ to: "/" });
+                    navigate({ to: "/planejamento" });
                   }}
                 >
                   <FolderOpen /> Abrir
