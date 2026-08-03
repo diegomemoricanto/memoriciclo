@@ -4,13 +4,15 @@ export type Subject = {
   color: string;
   importance: number;
   knowledge: number;
+  minSessionMinutes?: number;
+  maxSessionMinutes?: number;
 };
 
 export type Plan = {
   weeklyHours: number;
   studyDays: string[];
-  minSessionMinutes: number;
-  maxSessionMinutes: number;
+  minSessionMinutes?: number;
+  maxSessionMinutes?: number;
 };
 
 export type Session = {
@@ -53,6 +55,15 @@ export const WEEK_DAYS = [
 ];
 
 export const SESSION_OPTIONS = [15, 30, 45, 60, 75, 90, 105, 120];
+
+export const DEFAULT_MIN_SESSION = 30;
+export const DEFAULT_MAX_SESSION = 90;
+
+export function subjectRange(subject: Subject) {
+  const a = subject.minSessionMinutes ?? DEFAULT_MIN_SESSION;
+  const b = subject.maxSessionMinutes ?? DEFAULT_MAX_SESSION;
+  return { min: Math.max(5, Math.min(a, b)), max: Math.max(5, Math.max(a, b)) };
+}
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
