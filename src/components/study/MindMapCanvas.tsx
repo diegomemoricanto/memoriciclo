@@ -27,37 +27,25 @@ function layout(root: MindNode, collapsed: Set<string>) {
   const placed: Placed[] = [];
   let cursor = 0;
 
-  const walk = (
-    node: MindNode,
-    depth: number,
-    parent: { x: number; y: number } | null,
-  ): Placed => {
+  const walk = (node: MindNode, depth: number): Placed => {
     const x = depth * GAP_X;
     const kids = node.children ?? [];
-    const open = kids.length > 0 && !collapsed.has(node.id);
-    let y: number;
-    if (open) {
-      const start = cursor;
-      const self = { node, depth, x, y: 0, parent } as Placed;
-      placed.push(self);
-      const laid = kids.map((k) => walk(k, depth + 1, { x, y: 0 }));
-      const first = laid[0]!;
-      const last = laid[laid.length - 1]!;
-      y = (first.y + last.y) / 2;
-      self.y = y;
+    if (kids.length > 0 && !collapsed.has(node.id)) {
+      const laid = kids.map((k) => walk(k, depth + 1));
+      const y = (laid[0]!.y + laid[laid.length - 1]!.y) / 2;
+      const self: Placed = { node, depth, x, y, parent: null };
       laid.forEach((l) => {
         l.parent = { x, y };
       });
-      if (cursor === start) y = cursor++ * ROW_H;
+      placed.push(self);
       return self;
     }
-    y = cursor++ * ROW_H;
-    const self: Placed = { node, depth, x, y, parent };
+    const self: Placed = { node, depth, x, y: cursor++ * ROW_H, parent: null };
     placed.push(self);
     return self;
   };
 
-  walk(root, 0, null);
+  walk(root, 0);
   const width = Math.max(...placed.map((p) => p.x)) + NODE_W + 40;
   const height = Math.max(ROW_H, cursor * ROW_H) + 40;
   return { placed, width, height };
