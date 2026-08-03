@@ -71,10 +71,14 @@ export function colorForIndex(i: number): string {
   return SUBJECT_PALETTE[i % SUBJECT_PALETTE.length] as string;
 }
 
+export function subjectPriority(subject: Subject) {
+  return subject.importance * (6 - subject.knowledge);
+}
+
 export function subjectWeight(subject: Subject, subjects: Subject[]) {
-  const total = subjects.reduce((s, x) => s + x.importance, 0);
+  const total = subjects.reduce((s, x) => s + subjectPriority(x), 0);
   if (!total) return 0;
-  return (subject.importance / total) * 100;
+  return (subjectPriority(subject) / total) * 100;
 }
 
 export function formatMinutes(minutes: number) {
