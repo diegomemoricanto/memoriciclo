@@ -134,7 +134,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_340px]">
+      <div className="mt-6 grid gap-5 lg:grid-cols-[55fr_45fr]">
         <div className="space-y-5">
           <div className="grid gap-5 sm:grid-cols-[auto_1fr]">
             <section className="flex flex-col items-center rounded-2xl bg-card p-5 shadow-soft">
@@ -162,25 +162,29 @@ function Dashboard() {
             </section>
           </div>
 
-          <section className="rounded-2xl bg-card p-5 shadow-soft">
+          <section className="flex h-[560px] flex-col rounded-2xl bg-card p-5 shadow-soft">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Sequência dos estudos
             </h2>
-            <ul className="mt-4 space-y-2">
+            <ul className="scroll-visible mt-4 flex-1 space-y-4 overflow-y-auto pr-3">
               {sessions.map((session) => {
                 const subject = subjectById[session.subjectId];
                 const running = activeId === session.id;
+                const targetSeconds = Math.max(1, session.targetMinutes * 60);
+                const pct = session.completed
+                  ? 100
+                  : Math.min(100, (session.studiedSeconds / targetSeconds) * 100);
                 return (
                   <li
                     key={session.id}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl border bg-background p-3",
+                      "relative flex items-center gap-3 overflow-hidden rounded-xl border bg-background p-3 pl-5",
                       session.completed && "opacity-70",
                       running && "border-mint",
                     )}
                   >
                     <span
-                      className="h-10 w-1.5 shrink-0 rounded-full"
+                      className="absolute inset-y-0 left-0 w-1.5"
                       style={{ backgroundColor: subject?.color ?? "#ddd" }}
                     />
                     <div className="min-w-0 flex-1">
@@ -192,7 +196,8 @@ function Dashboard() {
                       >
                         {subject?.name ?? "Disciplina"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="size-3 shrink-0" />
                         {formatSeconds(session.studiedSeconds)} /{" "}
                         {formatMinutes(session.targetMinutes)}
                       </p>
@@ -211,11 +216,24 @@ function Dashboard() {
                         <Play />
                       </Button>
                     )}
+                    <span className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
+                      <span
+                        className="block h-full transition-all"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: subject?.color ?? "#ddd",
+                        }}
+                      />
+                    </span>
                   </li>
                 );
               })}
             </ul>
-            <Button variant="outline" className="mt-4 w-full" onClick={() => setWizardOpen(true)}>
+            <Button
+              variant="outline"
+              className="mt-4 w-full shrink-0"
+              onClick={() => setWizardOpen(true)}
+            >
               <SlidersHorizontal /> Ajustar Ciclo
             </Button>
           </section>
