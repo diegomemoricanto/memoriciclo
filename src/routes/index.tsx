@@ -206,9 +206,9 @@ function Dashboard() {
                         variant={running ? "mint" : "outline"}
                         size="icon"
                         aria-label={running ? "Pausar sessão" : "Iniciar sessão"}
-                        onClick={() => toggleSession(session.id)}
+                        onClick={() => openSession(session.id)}
                       >
-                        {running ? <Pause /> : <Play />}
+                        <Play />
                       </Button>
                     )}
                   </li>
@@ -225,7 +225,11 @@ function Dashboard() {
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Ciclo
           </h2>
-          <CycleDonut subjects={subjects} totalSeconds={totalTargetSeconds} />
+          <CycleDonut
+            sessions={sessions}
+            subjectById={subjectById}
+            totalSeconds={totalTargetSeconds}
+          />
           <div className="mt-5 flex h-3 overflow-hidden rounded-full">
             {subjects.map((s) => (
               <span
@@ -256,7 +260,7 @@ function Dashboard() {
         aria-label="Cronômetro"
         onClick={() => {
           const next = sessions.find((s) => !s.completed);
-          if (next) toggleSession(next.id);
+          if (next) openSession(next.id);
         }}
         className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-mint text-mint-foreground shadow-soft transition-transform hover:scale-105"
       >
@@ -271,15 +275,27 @@ function Dashboard() {
           onFinish={finishWizard}
         />
       )}
+
+      {activeSession && (
+        <TimerDialog
+          key={activeSession.id}
+          session={activeSession}
+          subject={subjectById[activeSession.subjectId]}
+          onClose={(total, delta) => savePartial(activeSession, total, delta)}
+          onFinish={(total, delta) => finishSession(activeSession, total, delta)}
+        />
+      )}
     </main>
   );
 }
 
 function CycleDonut({
-  subjects,
+  sessions,
+  subjectById,
   totalSeconds,
 }: {
-  subjects: Subject[];
+  sessions: Session[];
+  subjectById: Record<string, Subject | undefined>;
   totalSeconds: number;
 }) {
   const radius = 70;
