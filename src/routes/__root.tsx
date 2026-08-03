@@ -140,8 +140,7 @@ function RootComponent() {
             Home
           </Link>
           <Link
-            to="/"
-            activeOptions={{ exact: true }}
+            to="/planejamento"
             className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
           >
             Planejamento

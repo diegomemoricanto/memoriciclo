@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HistoricoRouteImport } from './routes/historico'
+import { Route as PlanejamentoRouteImport } from './routes/planejamento'
 import { Route as PlanejamentosRouteImport } from './routes/planejamentos'
 import { Route as MapasMentaisIndexRouteImport } from './routes/mapas-mentais.index'
 import { Route as MapasMentaisSubjectIdIndexRouteImport } from './routes/mapas-mentais.$subjectId.index'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const HistoricoRoute = HistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanejamentoRoute = PlanejamentoRouteImport.update({
+  id: '/planejamento',
+  path: '/planejamento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanejamentosRoute = PlanejamentosRouteImport.update({
@@ -52,6 +58,7 @@ const MapasMentaisSubjectIdTopicIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/historico': typeof HistoricoRoute
+  '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
   '/mapas-mentais/': typeof MapasMentaisIndexRoute
   '/mapas-mentais/$subjectId/$topicId': typeof MapasMentaisSubjectIdTopicIdRoute
@@ -60,6 +67,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/historico': typeof HistoricoRoute
+  '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
   '/mapas-mentais': typeof MapasMentaisIndexRoute
   '/mapas-mentais/$subjectId/$topicId': typeof MapasMentaisSubjectIdTopicIdRoute
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/historico': typeof HistoricoRoute
+  '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
   '/mapas-mentais/': typeof MapasMentaisIndexRoute
   '/mapas-mentais/$subjectId/$topicId': typeof MapasMentaisSubjectIdTopicIdRoute
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/historico'
+    | '/planejamento'
     | '/planejamentos'
     | '/mapas-mentais/'
     | '/mapas-mentais/$subjectId/$topicId'
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/historico'
+    | '/planejamento'
     | '/planejamentos'
     | '/mapas-mentais'
     | '/mapas-mentais/$subjectId/$topicId'
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/historico'
+    | '/planejamento'
     | '/planejamentos'
     | '/mapas-mentais/'
     | '/mapas-mentais/$subjectId/$topicId'
@@ -104,6 +116,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoricoRoute: typeof HistoricoRoute
+  PlanejamentoRoute: typeof PlanejamentoRoute
   PlanejamentosRoute: typeof PlanejamentosRoute
   MapasMentaisIndexRoute: typeof MapasMentaisIndexRoute
   MapasMentaisSubjectIdTopicIdRoute: typeof MapasMentaisSubjectIdTopicIdRoute
@@ -124,6 +137,13 @@ declare module '@tanstack/react-router' {
       path: '/historico'
       fullPath: '/historico'
       preLoaderRoute: typeof HistoricoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planejamento': {
+      id: '/planejamento'
+      path: '/planejamento'
+      fullPath: '/planejamento'
+      preLoaderRoute: typeof PlanejamentoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/planejamentos': {
@@ -160,6 +180,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoricoRoute: HistoricoRoute,
+  PlanejamentoRoute: PlanejamentoRoute,
   PlanejamentosRoute: PlanejamentosRoute,
   MapasMentaisIndexRoute: MapasMentaisIndexRoute,
   MapasMentaisSubjectIdTopicIdRoute: MapasMentaisSubjectIdTopicIdRoute,
@@ -168,13 +189,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
