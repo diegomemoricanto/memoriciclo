@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { CycleStats, Plan, Session, StudyLog, Subject } from "./study-types";
 import { uid } from "./study-types";
+import type { MindNode } from "./mindmap-types";
 
 export type SavedPlan = {
   id: string;
@@ -20,6 +21,7 @@ export type StudyState = {
   studyLogs: StudyLog[];
   savedPlans: SavedPlan[];
   activePlanId: string | null;
+  subjectMindMaps: Record<string, MindNode>;
 };
 
 const KEY = "painel-estudos-v1";
@@ -32,6 +34,7 @@ const empty: StudyState = {
   studyLogs: [],
   savedPlans: [],
   activePlanId: null,
+  subjectMindMaps: {},
 };
 
 let state: StudyState = empty;
@@ -201,4 +204,8 @@ export function restartCycle() {
     sessions: state.sessions.map((s) => ({ ...s, studiedSeconds: 0, completed: false })),
     cycleStats: { completedCycles: state.cycleStats.completedCycles + 1 },
   });
+}
+
+export function setSubjectMindMap(subjectId: string, map: MindNode) {
+  setState({ subjectMindMaps: { ...state.subjectMindMaps, [subjectId]: map } });
 }
