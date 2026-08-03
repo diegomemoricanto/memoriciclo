@@ -305,20 +305,23 @@ function CycleDonut({
   return (
     <div className="relative mx-auto mt-4 h-48 w-48">
       <svg viewBox="0 0 180 180" className="h-full w-full -rotate-90">
-        {subjects.map((s) => {
-          const weight = subjectWeight(s, subjects);
-          const length = (weight / 100) * circumference;
-          const dash = `${length} ${circumference - length}`;
+        {sessions.map((session) => {
+          const share = totalSeconds
+            ? (session.targetMinutes * 60) / totalSeconds
+            : 1 / Math.max(1, sessions.length);
+          const length = share * circumference;
+          const gap = Math.min(1.5, length * 0.15);
+          const visible = Math.max(0.5, length - gap);
           const el = (
             <circle
-              key={s.id}
+              key={session.id}
               cx={90}
               cy={90}
               r={radius}
               fill="none"
-              stroke={s.color}
+              stroke={subjectById[session.subjectId]?.color ?? "#ddd"}
               strokeWidth={22}
-              strokeDasharray={dash}
+              strokeDasharray={`${visible} ${circumference - visible}`}
               strokeDashoffset={-offset}
             />
           );
