@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Check, Clock, Play, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanWizard } from "@/components/study/PlanWizard";
@@ -45,6 +45,7 @@ function Dashboard() {
   const { subjects, plan, sessions, cycleStats } = useStudyState();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [liveSeconds, setLiveSeconds] = useState<number | null>(null);
 
   const subjectById = useMemo(
     () => Object.fromEntries(subjects.map((s) => [s.id, s])),
@@ -60,6 +61,7 @@ function Dashboard() {
   const openSession = (id: string) => {
     const session = sessions.find((s) => s.id === id);
     if (!session || session.completed) return;
+    setLiveSeconds(session.studiedSeconds);
     setActiveId(id);
   };
 
@@ -67,13 +69,17 @@ function Dashboard() {
     if (delta > 0) addStudyLog(session.subjectId, delta);
     updateSession(session.id, { studiedSeconds: totalSeconds });
     setActiveId(null);
+    setLiveSeconds(null);
   };
 
   const finishSession = (session: Session, totalSeconds: number, delta: number) => {
     if (delta > 0) addStudyLog(session.subjectId, delta);
     updateSession(session.id, { studiedSeconds: totalSeconds, completed: true });
     setActiveId(null);
+    setLiveSeconds(null);
   };
+
+  const handleTick = useCallback((total: number) => setLiveSeconds(total), []);
 
   const finishWizard = (nextSubjects: Subject[], nextPlan: Plan) => {
     if (totalStudiedSeconds > 0 && sessions.length > 0) {
@@ -171,9 +177,11 @@ function Dashboard() {
                 const subject = subjectById[session.subjectId];
                 const running = activeId === session.id;
                 const targetSeconds = Math.max(1, session.targetMinutes * 60);
+                const studied =
+                  running && liveSeconds !== null ? liveSeconds : session.studiedSeconds;
                 const pct = session.completed
                   ? 100
-                  : Math.min(100, (session.studiedSeconds / targetSeconds) * 100);
+                  : Math.min(100, (studied / targetSeconds) * 100);
                 return (
                   <li
                     key={session.id}
@@ -198,7 +206,7 @@ function Dashboard() {
                       </p>
                       <p className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="size-3 shrink-0" />
-                        {formatSeconds(session.studiedSeconds)} /{" "}
+                        {formatSeconds(studied)} /{" "}
                         {formatMinutes(session.targetMinutes)}
                       </p>
                     </div>
@@ -301,6 +309,7 @@ function Dashboard() {
           subject={subjectById[activeSession.subjectId]}
           onClose={(total, delta) => savePartial(activeSession, total, delta)}
           onFinish={(total, delta) => finishSession(activeSession, total, delta)}
+          onTick={handleTick}
         />
       )}
     </main>
@@ -316,12 +325,16 @@ function CycleDonut({
   subjectById: Record<string, Subject | undefined>;
   totalSeconds: number;
 }) {
-  const radius = 70;
+  const radius = 74;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
+  const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
 
   return (
-    <div className="relative mx-auto mt-4 h-48 w-48">
+    <div
+      className="relative mx-auto mt-4 aspect-square w-full max-w-[340px]"
+      onPointerLeave={() => setHover(null)}
+    >
       <svg viewBox="0 0 180 180" className="h-full w-full -rotate-90">
         {sessions.map((session) => {
           const share = totalSeconds
@@ -330,6 +343,7 @@ function CycleDonut({
           const length = share * circumference;
           const gap = Math.min(1.5, length * 0.15);
           const visible = Math.max(0.5, length - gap);
+          const name = subjectById[session.subjectId]?.name ?? "Disciplina";
           const el = (
             <circle
               key={session.id}
@@ -338,17 +352,43 @@ function CycleDonut({
               r={radius}
               fill="none"
               stroke={subjectById[session.subjectId]?.color ?? "#ddd"}
-              strokeWidth={22}
+              strokeWidth={30}
               strokeDasharray={`${visible} ${circumference - visible}`}
               strokeDashoffset={-offset}
+              className="cursor-pointer"
+              onPointerEnter={(e) => {
+                const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                setHover({
+                  name,
+                  x: box ? e.clientX - box.left : 0,
+                  y: box ? e.clientY - box.top : 0,
+                });
+              }}
+              onPointerDown={(e) => {
+                const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                setHover({
+                  name,
+                  x: box ? e.clientX - box.left : 0,
+                  y: box ? e.clientY - box.top : 0,
+                });
+              }}
             />
           );
           offset += length;
           return el;
         })}
       </svg>
+      {hover && (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg bg-foreground px-2 py-1 text-xs font-medium text-background shadow-soft"
+          style={{ left: hover.x, top: hover.y - 6 }}
+        >
+          {hover.name}
+        </span>
+      )}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-semibold">{formatSeconds(totalSeconds)}</span>
+        <span className="text-2xl font-semibold">{formatSeconds(totalSeconds)}</span>
         <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           por ciclo
         </span>
