@@ -140,6 +140,12 @@ function RootComponent() {
             Planejamento
           </Link>
           <Link
+            to="/planejamentos"
+            className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
+          >
+            Meus Planejamentos
+          </Link>
+          <Link
             to="/historico"
             className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
           >
