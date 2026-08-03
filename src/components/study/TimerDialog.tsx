@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Pause, Play, X } from "lucide-react";
+import { Brain, Check, Pause, Play, TimerIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MindMapPanel } from "./MindMapPanel";
+import { cn } from "@/lib/utils";
 import { formatMinutes, formatSeconds, type Session, type Subject } from "@/lib/study-types";
 
 function playAlert() {
@@ -48,6 +50,7 @@ export function TimerDialog({
   const [running, setRunning] = useState(true);
   const reached = elapsed >= targetSeconds;
   const alerted = useRef(false);
+  const [tab, setTab] = useState<"timer" | "map">("timer");
 
   useEffect(() => {
     if (!running || reached) return;
@@ -77,7 +80,12 @@ export function TimerDialog({
       aria-modal="true"
       aria-label="Cronômetro da sessão"
     >
-      <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-soft">
+      <div
+        className={cn(
+          "max-h-[92vh] w-full overflow-y-auto rounded-2xl bg-card p-6 shadow-soft",
+          tab === "map" ? "max-w-3xl" : "max-w-md",
+        )}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -101,6 +109,31 @@ export function TimerDialog({
           </Button>
         </div>
 
+        <div className="mt-4 flex gap-1 rounded-full bg-muted p-1">
+          {(
+            [
+              { id: "timer" as const, label: "Cronômetro", icon: TimerIcon },
+              { id: "map" as const, label: "Mapa Mental", icon: Brain },
+            ]
+          ).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                tab === t.id ? "bg-card shadow-soft" : "text-muted-foreground",
+              )}
+            >
+              <t.icon className="size-3.5" /> {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "map" ? (
+          <MindMapPanel subject={subject} />
+        ) : (
+          <>
         <p className="mt-8 text-center text-6xl font-semibold tabular-nums tracking-tight">
           {formatSeconds(elapsed)}
         </p>
@@ -156,6 +189,8 @@ export function TimerDialog({
               Salvar e sair
             </Button>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>
