@@ -1,6 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
-import { Check, Clock, Play, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
+import {
+  BarChart3,
+  Check,
+  Clock,
+  Layers,
+  Play,
+  RotateCcw,
+  Settings2,
+  SlidersHorizontal,
+  Timer,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanWizard } from "@/components/study/PlanWizard";
 import { TimerDialog } from "@/components/study/TimerDialog";
@@ -8,6 +19,7 @@ import { cn } from "@/lib/utils";
 import {
   addStudyLog,
   restartCycle,
+  savePlanAndActivate,
   setState,
   updateSession,
   useStudyState,
@@ -42,7 +54,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const { subjects, plan, sessions, cycleStats } = useStudyState();
+  const { subjects, plan, sessions, cycleStats, savedPlans, activePlanId } = useStudyState();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [liveSeconds, setLiveSeconds] = useState<number | null>(null);
@@ -81,7 +93,9 @@ function Dashboard() {
 
   const handleTick = useCallback((total: number) => setLiveSeconds(total), []);
 
-  const finishWizard = (nextSubjects: Subject[], nextPlan: Plan) => {
+  const activeName = savedPlans.find((p) => p.id === activePlanId)?.name;
+
+  const finishWizard = (nextSubjects: Subject[], nextPlan: Plan, name: string) => {
     if (totalStudiedSeconds > 0 && sessions.length > 0) {
       const ok = window.confirm(
         "Você já tem progresso neste ciclo. Regerar a sequência vai zerar o progresso atual. Continuar?",
@@ -89,25 +103,21 @@ function Dashboard() {
       if (!ok) return;
     }
     setActiveId(null);
-    setState({
+    savePlanAndActivate({
+      id: activePlanId,
+      name,
       subjects: nextSubjects,
       plan: nextPlan,
       sessions: generateSessions(nextSubjects, nextPlan),
+      cycleStats,
     });
     setWizardOpen(false);
   };
 
   if (!plan || sessions.length === 0) {
     return (
-      <main className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center px-4 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Painel de Estudos</h1>
-        <p className="mt-3 text-muted-foreground">
-          Crie seu planejamento para gerar um ciclo de estudos ponderado pelo peso de cada
-          disciplina.
-        </p>
-        <Button variant="mint" size="pill" className="mt-6" onClick={() => setWizardOpen(true)}>
-          Criar Planejamento
-        </Button>
+      <>
+        <Landing hasSaved={savedPlans.length > 0} onCreate={() => setWizardOpen(true)} />
         {wizardOpen && (
           <PlanWizard
             initialSubjects={subjects}
@@ -116,14 +126,17 @@ function Dashboard() {
             onFinish={finishWizard}
           />
         )}
-      </main>
+      </>
     );
   }
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-24 pt-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight">Planejamento</h1>
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Planejamento</h1>
+          {activeName && <p className="mt-1 text-sm text-muted-foreground">{activeName}</p>}
+        </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -297,6 +310,7 @@ function Dashboard() {
         <PlanWizard
           initialSubjects={subjects}
           initialPlan={plan}
+          initialName={activeName}
           onClose={() => setWizardOpen(false)}
           onFinish={finishWizard}
         />
