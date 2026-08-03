@@ -32,12 +32,15 @@ export function TimerDialog({
   subject,
   onClose,
   onFinish,
+  onTick,
 }: {
   session: Session;
   subject: Subject | undefined;
   /** salva progresso parcial (segundos totais, delta desta abertura) */
   onClose: (totalSeconds: number, deltaSeconds: number) => void;
   onFinish: (totalSeconds: number, deltaSeconds: number) => void;
+  /** notifica o tempo decorrido para atualização visual em tempo real */
+  onTick?: (totalSeconds: number) => void;
 }) {
   const targetSeconds = session.targetMinutes * 60;
   const startRef = useRef(session.studiedSeconds);
@@ -59,6 +62,10 @@ export function TimerDialog({
       playAlert();
     }
   }, [reached]);
+
+  useEffect(() => {
+    onTick?.(elapsed);
+  }, [elapsed, onTick]);
 
   const delta = () => Math.max(0, elapsed - startRef.current);
   const progress = Math.min(100, (elapsed / targetSeconds) * 100);
