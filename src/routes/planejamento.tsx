@@ -329,7 +329,7 @@ function SessionRow({
       onPointerLeave={() => setHovered(false)}
       className={cn(
         "relative overflow-hidden rounded-xl border bg-background p-3 pl-5 transition-all",
-        expanded ? "pb-8" : "pb-3",
+        expanded ? "pb-4" : "pb-3",
         session.completed && "opacity-70",
         running && "border-mint",
       )}
@@ -355,6 +355,13 @@ function SessionRow({
         )}
       </div>
 
+      <span className="mt-2 block h-1 overflow-hidden rounded-full bg-muted">
+        <span
+          className="block h-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: subject?.color ?? "#ddd" }}
+        />
+      </span>
+
       {expanded && (
         <div className="mt-3">
           <div className="flex flex-wrap gap-2">
@@ -378,13 +385,6 @@ function SessionRow({
           )}
         </div>
       )}
-
-      <span className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
-        <span
-          className="block h-full transition-all"
-          style={{ width: `${pct}%`, backgroundColor: subject?.color ?? "#ddd" }}
-        />
-      </span>
     </li>
   );
 }
