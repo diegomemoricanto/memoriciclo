@@ -254,8 +254,7 @@ export function PlanWizard({
             </div>
 
             <p className="text-xs text-muted-foreground">
-              A duração mínima e máxima de cada sessão agora é definida por disciplina, na
-              etapa 1.
+              A duração mínima e máxima de cada sessão agora é definida por disciplina, na etapa 1.
             </p>
           </div>
         )}
@@ -312,13 +311,7 @@ function LabeledSlider({
   );
 }
 
-function MinutesSelect({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
+function MinutesSelect({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
       <SelectTrigger className="w-full">

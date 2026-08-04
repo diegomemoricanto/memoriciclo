@@ -44,15 +44,7 @@ export const SUBJECT_PALETTE = [
   "#F7B8DC",
 ];
 
-export const WEEK_DAYS = [
-  "domingo",
-  "segunda",
-  "terça",
-  "quarta",
-  "quinta",
-  "sexta",
-  "sábado",
-];
+export const WEEK_DAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
 export const SESSION_OPTIONS = [15, 30, 45, 60, 75, 90, 105, 120];
 

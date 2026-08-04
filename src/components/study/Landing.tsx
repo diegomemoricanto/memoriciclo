@@ -1,8 +1,11 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Layers, Network, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRequireAuth } from "@/components/auth/auth-gate";
 
 export function Landing({ hasSaved, onCreate }: { hasSaved: boolean; onCreate: () => void }) {
+  const requireAuth = useRequireAuth();
+  const navigate = useNavigate();
   const features = [
     { icon: Layers, title: "Ciclos ponderados por peso", text: "Importância × conhecimento" },
     { icon: Timer, title: "Cronômetro por sessão", text: "Alerta ao bater o alvo" },
@@ -24,22 +27,26 @@ export function Landing({ hasSaved, onCreate }: { hasSaved: boolean; onCreate: (
             </span>
           </h1>
           <p className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
-            Monte um ciclo de revisão inteligente: cada disciplina entra na sequência de acordo
-            com o peso dela, em sessões curtas e cronometradas.
+            Monte um ciclo de revisão inteligente: cada disciplina entra na sequência de acordo com
+            o peso dela, em sessões curtas e cronometradas.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button variant="mint" size="pill" onClick={onCreate}>
+            <Button variant="mint" size="pill" onClick={() => requireAuth(onCreate)}>
               Criar Planejamento
             </Button>
-            {hasSaved && (
-              <Button variant="outline" size="pill" asChild>
-                <Link to="/planejamentos">Meus Planejamentos</Link>
-              </Button>
-            )}
-            <Button variant="outline" size="pill" asChild>
-              <Link to="/mapas-mentais">
-                <Network /> Mapas Mentais
-              </Link>
+            <Button
+              variant="outline"
+              size="pill"
+              onClick={() => requireAuth(() => navigate({ to: "/planejamentos" }))}
+            >
+              Meus Planejamentos
+            </Button>
+            <Button
+              variant="outline"
+              size="pill"
+              onClick={() => requireAuth(() => navigate({ to: "/mapas-mentais" }))}
+            >
+              <Network /> Mapas Mentais
             </Button>
           </div>
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
@@ -70,7 +77,10 @@ function LandingWheel() {
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[420px]">
       <div className="absolute inset-6 rounded-full bg-mint/20 blur-2xl" />
-      <svg viewBox="0 0 180 180" className="relative h-full w-full animate-[spin_28s_linear_infinite]">
+      <svg
+        viewBox="0 0 180 180"
+        className="relative h-full w-full animate-[spin_28s_linear_infinite]"
+      >
         {Array.from({ length: slices }).map((_, i) => (
           <circle
             key={i}
@@ -94,4 +104,3 @@ function LandingWheel() {
     </div>
   );
 }
-

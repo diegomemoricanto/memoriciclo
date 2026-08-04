@@ -30,7 +30,10 @@ function TopicPage() {
 
   const rename = (id: string, label: string) => {
     if (!map) return;
-    setMindMap(topicId, mapNode(map, (n) => (n.id === id ? { ...n, label } : n)));
+    setMindMap(
+      topicId,
+      mapNode(map, (n) => (n.id === id ? { ...n, label } : n)),
+    );
   };
 
   const addChild = (id: string) => {
@@ -38,9 +41,7 @@ function TopicPage() {
     const child: MindNode = { id: mindUid(), label: "Novo tópico", children: [] };
     setMindMap(
       topicId,
-      mapNode(map, (n) =>
-        n.id === id ? { ...n, children: [...(n.children ?? []), child] } : n,
-      ),
+      mapNode(map, (n) => (n.id === id ? { ...n, children: [...(n.children ?? []), child] } : n)),
     );
   };
 
@@ -91,10 +92,7 @@ function TopicPage() {
           <p className="text-sm text-muted-foreground">
             Nenhum mapa mental salvo para este assunto ainda.
           </p>
-          <Button
-            variant="mint"
-            onClick={() => createMindMap(topicId, topic?.name ?? "Assunto")}
-          >
+          <Button variant="mint" onClick={() => createMindMap(topicId, topic?.name ?? "Assunto")}>
             Criar mapa mental
           </Button>
         </div>

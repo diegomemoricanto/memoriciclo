@@ -51,9 +51,7 @@ function SubjectTopicsPage() {
           {subject && (
             <span className="h-8 w-1.5 rounded-full" style={{ background: subject.color }} />
           )}
-          <h1 className="text-3xl font-semibold tracking-tight">
-            {subject?.name ?? "Disciplina"}
-          </h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{subject?.name ?? "Disciplina"}</h1>
         </div>
         <Button variant="mint" size="pill" onClick={() => setAdding(true)}>
           <Plus /> Adicionar assunto

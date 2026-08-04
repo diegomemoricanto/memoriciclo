@@ -34,7 +34,8 @@ export async function generateMindMapTree(content: string, subject?: string): Pr
     }),
   });
 
-  if (res.status === 429) throw new Error("Muitas requisições de IA. Tente novamente em instantes.");
+  if (res.status === 429)
+    throw new Error("Muitas requisições de IA. Tente novamente em instantes.");
   if (res.status === 402) throw new Error("Os créditos de IA do projeto acabaram.");
   if (!res.ok) throw new Error(`Falha na geração do mapa mental (${res.status}).`);
 

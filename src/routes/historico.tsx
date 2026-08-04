@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Metrics } from "@/components/study/Metrics";
 import { useStudyState } from "@/lib/study-store";
 import { formatSeconds } from "@/lib/study-types";
 
@@ -23,6 +26,7 @@ export const Route = createFileRoute("/historico")({
 
 function HistoryPage() {
   const { subjects, studyLogs } = useStudyState();
+  const [tab, setTab] = useState<"historico" | "desempenho">("historico");
 
   const perSubject = subjects
     .map((s) => ({
@@ -52,54 +56,80 @@ function HistoryPage() {
         Registros criados a cada pausa ou conclusão de sessão.
       </p>
 
-      <section className="mt-6 rounded-2xl bg-card p-5 shadow-soft">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Total por disciplina
-        </h2>
-        {perSubject.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">Nenhum estudo registrado ainda.</p>
-        ) : (
-          <ul className="mt-4 space-y-3">
-            {perSubject.map(({ subject, seconds }) => (
-              <li key={subject.id}>
-                <div className="flex justify-between text-sm">
-                  <span className="truncate pr-2">{subject.name}</span>
-                  <span className="font-semibold">{formatSeconds(seconds)}</span>
-                </div>
-                <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${(seconds / maxSubject) * 100}%`,
-                      backgroundColor: subject.color,
-                    }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <div className="mt-5 flex gap-2">
+        <Button
+          variant={tab === "historico" ? "mint" : "outline"}
+          size="sm"
+          onClick={() => setTab("historico")}
+        >
+          Histórico
+        </Button>
+        <Button
+          variant={tab === "desempenho" ? "mint" : "outline"}
+          size="sm"
+          onClick={() => setTab("desempenho")}
+        >
+          Desempenho
+        </Button>
+      </div>
 
-      <section className="mt-5 rounded-2xl bg-card p-5 shadow-soft">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Últimos 14 dias
-        </h2>
-        <div className="mt-5 flex h-40 items-end gap-1.5">
-          {days.map((d) => (
-            <div key={d.key} className="flex flex-1 flex-col items-center gap-1">
-              <span className="text-[9px] text-muted-foreground">
-                {d.seconds > 0 ? formatSeconds(d.seconds) : ""}
-              </span>
-              <div
-                className="w-full rounded-t-md bg-mint"
-                style={{ height: `${Math.max(2, (d.seconds / maxDay) * 100)}%` }}
-              />
-              <span className="text-[9px] text-muted-foreground">{d.label}</span>
-            </div>
-          ))}
+      {tab === "desempenho" && (
+        <div className="mt-6">
+          <Metrics mode="week" />
         </div>
-      </section>
+      )}
+      {tab === "historico" && (
+        <>
+          <section className="mt-6 rounded-2xl bg-card p-5 shadow-soft">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Total por disciplina
+            </h2>
+            {perSubject.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">Nenhum estudo registrado ainda.</p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {perSubject.map(({ subject, seconds }) => (
+                  <li key={subject.id}>
+                    <div className="flex justify-between text-sm">
+                      <span className="truncate pr-2">{subject.name}</span>
+                      <span className="font-semibold">{formatSeconds(seconds)}</span>
+                    </div>
+                    <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${(seconds / maxSubject) * 100}%`,
+                          backgroundColor: subject.color,
+                        }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="mt-5 rounded-2xl bg-card p-5 shadow-soft">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Últimos 14 dias
+            </h2>
+            <div className="mt-5 flex h-40 items-end gap-1.5">
+              {days.map((d) => (
+                <div key={d.key} className="flex flex-1 flex-col items-center gap-1">
+                  <span className="text-[9px] text-muted-foreground">
+                    {d.seconds > 0 ? formatSeconds(d.seconds) : ""}
+                  </span>
+                  <div
+                    className="w-full rounded-t-md bg-mint"
+                    style={{ height: `${Math.max(2, (d.seconds / maxDay) * 100)}%` }}
+                  />
+                  <span className="text-[9px] text-muted-foreground">{d.label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </main>
   );
 }

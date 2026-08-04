@@ -60,10 +60,7 @@ function Dashboard() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [liveSeconds, setLiveSeconds] = useState<number | null>(null);
 
-  const subjectById = useMemo(
-    () => Object.fromEntries(subjects.map((s) => [s.id, s])),
-    [subjects],
-  );
+  const subjectById = useMemo(() => Object.fromEntries(subjects.map((s) => [s.id, s])), [subjects]);
 
   const totalTargetSeconds = sessions.reduce((a, s) => a + s.targetMinutes * 60, 0);
   const totalStudiedSeconds = sessions.reduce((a, s) => a + s.studiedSeconds, 0);
@@ -220,8 +217,7 @@ function Dashboard() {
                       </p>
                       <p className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="size-3 shrink-0" />
-                        {formatSeconds(studied)} /{" "}
-                        {formatMinutes(session.targetMinutes)}
+                        {formatSeconds(studied)} / {formatMinutes(session.targetMinutes)}
                       </p>
                     </div>
                     {session.completed ? (
@@ -281,10 +277,7 @@ function Dashboard() {
           <ul className="mt-4 space-y-2">
             {subjects.map((s) => (
               <li key={s.id} className="flex items-center gap-2 text-sm">
-                <span
-                  className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: s.color }}
-                />
+                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color }} />
                 <span className="flex-1 truncate">{s.name}</span>
                 <span className="text-xs font-semibold text-muted-foreground">
                   {subjectWeight(s, subjects).toFixed(1)}%

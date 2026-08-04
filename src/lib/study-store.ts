@@ -2,16 +2,20 @@ import { useSyncExternalStore } from "react";
 import type { CycleStats, Plan, Session, StudyLog, Subject } from "./study-types";
 import { uid } from "./study-types";
 import type { MindNode } from "./mindmap-types";
+import { getAuth, onUserChange } from "./auth-store";
+import {
+  deleteRemotePlan,
+  insertRemoteStudyLog,
+  loadStudyData,
+  resetRemoteCycle,
+  saveRemotePlan,
+  setRemoteActivePlan,
+  updateRemoteSession,
+  upsertRemoteMindMap,
+  type SavedPlan,
+} from "./study-repo";
 
-export type SavedPlan = {
-  id: string;
-  name: string;
-  createdAt: string;
-  subjects: Subject[];
-  plan: Plan;
-  sessions: Session[];
-  cycleStats: CycleStats;
-};
+export type { SavedPlan };
 
 export type StudyState = {
   subjects: Subject[];
@@ -22,9 +26,8 @@ export type StudyState = {
   savedPlans: SavedPlan[];
   activePlanId: string | null;
   subjectMindMaps: Record<string, MindNode>;
+  loading: boolean;
 };
-
-const KEY = "painel-estudos-v1";
 
 const empty: StudyState = {
   subjects: [],
@@ -35,39 +38,48 @@ const empty: StudyState = {
   savedPlans: [],
   activePlanId: null,
   subjectMindMaps: {},
+  loading: true,
 };
 
 let state: StudyState = empty;
-let hydrated = false;
+let started = false;
 const listeners = new Set<() => void>();
 
-function emit() {
-  listeners.forEach((l) => l());
+const emit = () => listeners.forEach((l) => l());
+const userId = () => getAuth().userId;
+
+function projectActive(next: StudyState): StudyState {
+  const active = next.savedPlans.find((p) => p.id === next.activePlanId);
+  return {
+    ...next,
+    subjects: active?.subjects ?? [],
+    plan: active?.plan ?? null,
+    sessions: active?.sessions ?? [],
+    cycleStats: active?.cycleStats ?? { completedCycles: 0 },
+  };
 }
 
-function persist() {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(state));
-  } catch {
-    /* ignore */
-  }
-}
-
-function hydrate() {
-  if (hydrated || typeof window === "undefined") return;
-  hydrated = true;
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) state = { ...empty, ...(JSON.parse(raw) as StudyState) };
-  } catch {
-    /* ignore */
-  }
-  emit();
+function start() {
+  if (started || typeof window === "undefined") return;
+  started = true;
+  onUserChange((id) => {
+    if (!id) {
+      state = { ...empty, loading: false };
+      emit();
+      return;
+    }
+    state = { ...state, loading: true };
+    emit();
+    void loadStudyData(id).then((data) => {
+      state = projectActive({ ...state, ...data, loading: false });
+      emit();
+    });
+  });
 }
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  hydrate();
+  start();
   return () => listeners.delete(listener);
 }
 
@@ -79,14 +91,17 @@ export function useStudyState(): StudyState {
   );
 }
 
+export function getState() {
+  return state;
+}
+
+/** atualização local + sincronia do planejamento ativo salvo */
 export function setState(next: Partial<StudyState>) {
   state = { ...state, ...next };
   syncActivePlan();
-  persist();
   emit();
 }
 
-/** mantém o planejamento salvo ativo em sincronia com o estado do dashboard */
 function syncActivePlan() {
   if (!state.activePlanId || !state.plan) return;
   state.savedPlans = state.savedPlans.map((p) =>
@@ -102,7 +117,7 @@ function syncActivePlan() {
   );
 }
 
-/** cria (ou atualiza) um planejamento salvo e o define como ativo — persiste imediatamente */
+/** cria (ou atualiza) um planejamento e o define como ativo — grava no banco */
 export function savePlanAndActivate(args: {
   id?: string | null;
   name?: string;
@@ -128,84 +143,77 @@ export function savePlanAndActivate(args: {
     cycleStats,
   };
 
-  state = {
+  state = projectActive({
     ...state,
-    subjects: args.subjects,
-    plan: args.plan,
-    sessions: args.sessions,
-    cycleStats,
     activePlanId: id,
     savedPlans: existing
       ? state.savedPlans.map((p) => (p.id === id ? entry : p))
       : [...state.savedPlans, entry],
-  };
-  persist();
+  });
   emit();
+
+  const uidNow = userId();
+  if (uidNow) void saveRemotePlan(uidNow, entry);
   return id;
 }
 
 export function openPlan(id: string) {
-  const found = state.savedPlans.find((p) => p.id === id);
-  if (!found) return;
-  state = {
-    ...state,
-    activePlanId: id,
-    subjects: found.subjects,
-    plan: found.plan,
-    sessions: found.sessions,
-    cycleStats: found.cycleStats,
-  };
-  persist();
+  if (!state.savedPlans.some((p) => p.id === id)) return;
+  state = projectActive({ ...state, activePlanId: id });
   emit();
+  const uidNow = userId();
+  if (uidNow) void setRemoteActivePlan(uidNow, id);
 }
 
 export function deletePlan(id: string) {
   const savedPlans = state.savedPlans.filter((p) => p.id !== id);
-  const clearing = state.activePlanId === id;
-  state = {
-    ...state,
-    savedPlans,
-    ...(clearing
-      ? {
-          activePlanId: null,
-          subjects: [],
-          plan: null,
-          sessions: [],
-          cycleStats: { completedCycles: 0 },
-        }
-      : {}),
-  };
-  persist();
+  const activePlanId =
+    state.activePlanId === id
+      ? (savedPlans[savedPlans.length - 1]?.id ?? null)
+      : state.activePlanId;
+  state = projectActive({ ...state, savedPlans, activePlanId });
   emit();
-}
-
-export function getState() {
-  return state;
+  const uidNow = userId();
+  if (uidNow) void deleteRemotePlan(uidNow, id);
 }
 
 export function addStudyLog(subjectId: string, durationSeconds: number) {
   if (durationSeconds < 1) return;
-  setState({
-    studyLogs: [
-      ...state.studyLogs,
-      { id: uid(), subjectId, date: new Date().toISOString(), durationSeconds },
-    ],
-  });
+  const log: StudyLog = {
+    id: uid(),
+    subjectId,
+    date: new Date().toISOString(),
+    durationSeconds,
+  };
+  setState({ studyLogs: [...state.studyLogs, log] });
+  const uidNow = userId();
+  if (uidNow) void insertRemoteStudyLog(uidNow, state.activePlanId, log);
 }
 
 export function updateSession(id: string, patch: Partial<Session>) {
   setState({
     sessions: state.sessions.map((s) => (s.id === id ? { ...s, ...patch } : s)),
   });
+  const uidNow = userId();
+  if (uidNow && state.activePlanId) {
+    void updateRemoteSession(uidNow, state.activePlanId, id, patch);
+  }
 }
 
 export function restartCycle() {
+  const completedCycles = state.cycleStats.completedCycles + 1;
   setState({
     sessions: state.sessions.map((s) => ({ ...s, studiedSeconds: 0, completed: false })),
-    cycleStats: { completedCycles: state.cycleStats.completedCycles + 1 },
+    cycleStats: { completedCycles },
   });
+  const uidNow = userId();
+  if (uidNow && state.activePlanId) {
+    void resetRemoteCycle(uidNow, state.activePlanId, completedCycles);
+  }
 }
 
 export function setSubjectMindMap(subjectId: string, map: MindNode) {
   setState({ subjectMindMaps: { ...state.subjectMindMaps, [subjectId]: map } });
+  const uidNow = userId();
+  if (uidNow) void upsertRemoteMindMap(uidNow, "subject", subjectId, map);
 }

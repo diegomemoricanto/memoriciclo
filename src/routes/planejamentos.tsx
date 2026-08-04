@@ -3,12 +3,7 @@ import { useState } from "react";
 import { BookOpen, Clock, FolderOpen, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanWizard } from "@/components/study/PlanWizard";
-import {
-  deletePlan,
-  openPlan,
-  savePlanAndActivate,
-  useStudyState,
-} from "@/lib/study-store";
+import { deletePlan, openPlan, savePlanAndActivate, useStudyState } from "@/lib/study-store";
 import { formatSeconds, generateSessions, type Plan, type Subject } from "@/lib/study-types";
 
 export const Route = createFileRoute("/planejamentos")({
