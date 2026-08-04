@@ -225,6 +225,7 @@ export type Database = {
           questions_wrong: number | null
           studied_at: string
           subject_id: string
+          topic: string | null
           user_id: string
         }
         Insert: {
@@ -236,6 +237,7 @@ export type Database = {
           questions_wrong?: number | null
           studied_at?: string
           subject_id: string
+          topic?: string | null
           user_id?: string
         }
         Update: {
@@ -247,6 +249,7 @@ export type Database = {
           questions_wrong?: number | null
           studied_at?: string
           subject_id?: string
+          topic?: string | null
           user_id?: string
         }
         Relationships: []
