@@ -82,6 +82,9 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
       subjectId: l.subject_id,
       date: l.studied_at,
       durationSeconds: l.duration_seconds,
+      questionsTotal: l.questions_total,
+      questionsCorrect: l.questions_correct,
+      questionsWrong: l.questions_wrong,
     })),
     subjectMindMaps: Object.fromEntries(
       (maps.data ?? []).map((m) => [m.ref_id, m.data as unknown as MindNode]),
@@ -221,6 +224,9 @@ export async function insertRemoteStudyLog(userId: string, planId: string | null
     subject_id: log.subjectId,
     studied_at: log.date,
     duration_seconds: log.durationSeconds,
+    questions_total: log.questionsTotal ?? null,
+    questions_correct: log.questionsCorrect ?? null,
+    questions_wrong: log.questionsWrong ?? null,
   });
 }
 
