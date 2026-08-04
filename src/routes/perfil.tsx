@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Metrics } from "@/components/study/Metrics";
@@ -29,7 +29,6 @@ function ProfilePage() {
   const { userId, email, profile, loading } = useAuth();
   const requireAuth = useRequireAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"week" | "day">("week");
 
   useEffect(() => {
     if (!loading && !userId) requireAuth();
