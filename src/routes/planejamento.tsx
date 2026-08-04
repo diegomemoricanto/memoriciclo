@@ -1,21 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
-import {
-  BarChart3,
-  Check,
-  Clock,
-  Layers,
-  Network,
-  Play,
-  RotateCcw,
-  Settings2,
-  SlidersHorizontal,
-  Timer,
-} from "lucide-react";
+import { Check, Clock, Play, Plus, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanWizard } from "@/components/study/PlanWizard";
 import { TimerDialog } from "@/components/study/TimerDialog";
+import { ManualStudyForm, type ManualEntry } from "@/components/study/ManualStudyForm";
 import { cn } from "@/lib/utils";
 import { Landing } from "@/components/study/Landing";
 import {
@@ -96,6 +85,15 @@ function Dashboard() {
   };
 
   const handleTick = useCallback((total: number) => setLiveSeconds(total), []);
+
+  const addManual = (session: Session, entry: ManualEntry) => {
+    addStudyLog(session.subjectId, entry.seconds, entry.questions);
+    const total = session.studiedSeconds + entry.seconds;
+    updateSession(session.id, {
+      studiedSeconds: total,
+      completed: total >= session.targetMinutes * 60,
+    });
+  };
 
   const activeName = savedPlans.find((p) => p.id === activePlanId)?.name;
 
@@ -190,68 +188,17 @@ function Dashboard() {
               Sequência dos estudos
             </h2>
             <ul className="scroll-visible mt-4 flex-1 space-y-4 overflow-y-auto pr-3">
-              {sessions.map((session) => {
-                const subject = subjectById[session.subjectId];
-                const running = activeId === session.id;
-                const targetSeconds = Math.max(1, session.targetMinutes * 60);
-                const studied =
-                  running && liveSeconds !== null ? liveSeconds : session.studiedSeconds;
-                const pct = session.completed
-                  ? 100
-                  : Math.min(100, (studied / targetSeconds) * 100);
-                return (
-                  <li
-                    key={session.id}
-                    className={cn(
-                      "relative flex items-center gap-3 overflow-hidden rounded-xl border bg-background p-3 pl-5",
-                      session.completed && "opacity-70",
-                      running && "border-mint",
-                    )}
-                  >
-                    <span
-                      className="absolute inset-y-0 left-0 w-1.5"
-                      style={{ backgroundColor: subject?.color ?? "#ddd" }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={cn(
-                          "truncate text-sm font-medium",
-                          session.completed && "line-through",
-                        )}
-                      >
-                        {subject?.name ?? "Disciplina"}
-                      </p>
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="size-3 shrink-0" />
-                        {formatSeconds(studied)} / {formatMinutes(session.targetMinutes)}
-                      </p>
-                    </div>
-                    {session.completed ? (
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mint/30">
-                        <Check className="size-4 text-mint-foreground" />
-                      </span>
-                    ) : (
-                      <Button
-                        variant={running ? "mint" : "outline"}
-                        size="icon"
-                        aria-label={running ? "Pausar sessão" : "Iniciar sessão"}
-                        onClick={() => openSession(session.id)}
-                      >
-                        <Play />
-                      </Button>
-                    )}
-                    <span className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
-                      <span
-                        className="block h-full transition-all"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: subject?.color ?? "#ddd",
-                        }}
-                      />
-                    </span>
-                  </li>
-                );
-              })}
+              {sessions.map((session) => (
+                <SessionRow
+                  key={session.id}
+                  session={session}
+                  subject={subjectById[session.subjectId]}
+                  running={activeId === session.id}
+                  liveSeconds={activeId === session.id ? liveSeconds : null}
+                  onStart={() => openSession(session.id)}
+                  onManual={(entry) => addManual(session, entry)}
+                />
+              ))}
             </ul>
             <Button
               variant="outline"
@@ -271,6 +218,7 @@ function Dashboard() {
             sessions={sessions}
             subjectById={subjectById}
             totalSeconds={totalTargetSeconds}
+            studiedSeconds={totalStudiedSeconds}
           />
           <div className="mt-5 flex h-3 overflow-hidden rounded-full">
             {subjects.map((s) => (
@@ -336,15 +284,138 @@ function CycleDonut({
   sessions,
   subjectById,
   totalSeconds,
+  studiedSeconds,
 }: {
   sessions: Session[];
   subjectById: Record<string, Subject | undefined>;
   totalSeconds: number;
+  studiedSeconds: number;
+}) {
+  return (
+    <CycleDonutInner
+      sessions={sessions}
+      subjectById={subjectById}
+      totalSeconds={totalSeconds}
+      studiedSeconds={studiedSeconds}
+    />
+  );
+}
+
+function SessionRow({
+  session,
+  subject,
+  running,
+  liveSeconds,
+  onStart,
+  onManual,
+}: {
+  session: Session;
+  subject: Subject | undefined;
+  running: boolean;
+  liveSeconds: number | null;
+  onStart: () => void;
+  onManual: (entry: ManualEntry) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const expanded = hovered || formOpen;
+  const targetSeconds = Math.max(1, session.targetMinutes * 60);
+  const studied = running && liveSeconds !== null ? liveSeconds : session.studiedSeconds;
+  const pct = session.completed ? 100 : Math.min(100, (studied / targetSeconds) * 100);
+
+  return (
+    <li
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      className={cn(
+        "relative overflow-hidden rounded-xl border bg-background p-3 pl-5 transition-all",
+        expanded ? "pb-4" : "pb-3",
+        session.completed && "opacity-70",
+        running && "border-mint",
+      )}
+    >
+      <span
+        className="absolute inset-y-0 left-0 w-1.5"
+        style={{ backgroundColor: subject?.color ?? "#ddd" }}
+      />
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className={cn("truncate text-sm font-medium", session.completed && "line-through")}>
+            {subject?.name ?? "Disciplina"}
+          </p>
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="size-3 shrink-0" />
+            {formatSeconds(studied)} / {formatMinutes(session.targetMinutes)}
+          </p>
+        </div>
+        {session.completed && (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mint/30">
+            <Check className="size-4 text-mint-foreground" />
+          </span>
+        )}
+      </div>
+
+      <span className="mt-2 block h-1 overflow-hidden rounded-full bg-muted">
+        <span
+          className="block h-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: subject?.color ?? "#ddd" }}
+        />
+      </span>
+
+      {expanded && (
+        <div className="mt-3">
+          <div className="flex flex-wrap gap-2">
+            {!session.completed && (
+              <Button variant="mint" size="sm" onClick={onStart}>
+                <Play /> Iniciar Estudo
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setFormOpen((v) => !v)}>
+              <Plus /> Adicionar Estudo Manualmente
+            </Button>
+          </div>
+          {formOpen && (
+            <ManualStudyForm
+              onCancel={() => setFormOpen(false)}
+              onSave={(entry) => {
+                onManual(entry);
+                setFormOpen(false);
+              }}
+            />
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+function CycleDonutInner({
+  sessions,
+  subjectById,
+  totalSeconds,
+  studiedSeconds,
+}: {
+  sessions: Session[];
+  subjectById: Record<string, Subject | undefined>;
+  totalSeconds: number;
+  studiedSeconds: number;
 }) {
   const radius = 74;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
-  const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<{ label: string; sub: string; x: number; y: number } | null>(
+    null,
+  );
+
+  const bySubject = useMemo(() => {
+    const map: Record<string, { studied: number; target: number }> = {};
+    sessions.forEach((s) => {
+      const acc = (map[s.subjectId] ??= { studied: 0, target: 0 });
+      acc.studied += s.studiedSeconds;
+      acc.target += s.targetMinutes * 60;
+    });
+    return map;
+  }, [sessions]);
 
   return (
     <div
@@ -352,6 +423,15 @@ function CycleDonut({
       onPointerLeave={() => setHover(null)}
     >
       <svg viewBox="0 0 180 180" className="h-full w-full -rotate-90">
+        <circle
+          cx={90}
+          cy={90}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={34}
+          className="text-muted"
+        />
         {sessions.map((session) => {
           const share = totalSeconds
             ? (session.targetMinutes * 60) / totalSeconds
@@ -360,35 +440,55 @@ function CycleDonut({
           const gap = Math.min(1.5, length * 0.15);
           const visible = Math.max(0.5, length - gap);
           const name = subjectById[session.subjectId]?.name ?? "Disciplina";
+          const color = subjectById[session.subjectId]?.color ?? "#ddd";
+          const agg = bySubject[session.subjectId];
+          const sub = agg
+            ? `${formatSeconds(agg.studied)} / ${formatSeconds(agg.target)}`
+            : "";
+          const sessionTarget = Math.max(1, session.targetMinutes * 60);
+          const doneRatio = session.completed
+            ? 1
+            : Math.min(1, session.studiedSeconds / sessionTarget);
+          const doneLength = visible * doneRatio;
+          const show = (e: React.PointerEvent<SVGCircleElement>) => {
+            const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+            setHover({
+              label: name,
+              sub,
+              x: box ? e.clientX - box.left : 0,
+              y: box ? e.clientY - box.top : 0,
+            });
+          };
           const el = (
-            <circle
-              key={session.id}
-              cx={90}
-              cy={90}
-              r={radius}
-              fill="none"
-              stroke={subjectById[session.subjectId]?.color ?? "#ddd"}
-              strokeWidth={30}
-              strokeDasharray={`${visible} ${circumference - visible}`}
-              strokeDashoffset={-offset}
-              className="cursor-pointer"
-              onPointerEnter={(e) => {
-                const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                setHover({
-                  name,
-                  x: box ? e.clientX - box.left : 0,
-                  y: box ? e.clientY - box.top : 0,
-                });
-              }}
-              onPointerDown={(e) => {
-                const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                setHover({
-                  name,
-                  x: box ? e.clientX - box.left : 0,
-                  y: box ? e.clientY - box.top : 0,
-                });
-              }}
-            />
+            <g key={session.id}>
+              <circle
+                cx={90}
+                cy={90}
+                r={radius}
+                fill="none"
+                stroke={color}
+                strokeWidth={30}
+                strokeDasharray={`${visible} ${circumference - visible}`}
+                strokeDashoffset={-offset}
+                className="cursor-pointer"
+                onPointerEnter={show}
+                onPointerDown={show}
+              />
+              {doneLength > 0.3 && (
+                <circle
+                  cx={90}
+                  cy={90}
+                  r={radius}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={30}
+                  strokeDasharray={`${doneLength} ${circumference - doneLength}`}
+                  strokeDashoffset={-offset}
+                  className="pointer-events-none transition-all"
+                  style={{ filter: "brightness(0.68) saturate(1.6)" }}
+                />
+              )}
+            </g>
           );
           offset += length;
           return el;
@@ -397,16 +497,20 @@ function CycleDonut({
       {hover && (
         <span
           role="tooltip"
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg bg-foreground px-2 py-1 text-xs font-medium text-background shadow-soft"
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-foreground px-2 py-1 text-xs font-medium text-background shadow-soft"
           style={{ left: hover.x, top: hover.y - 6 }}
         >
-          {hover.name}
+          {hover.label}
+          {hover.sub && <span className="ml-1 opacity-70">{hover.sub}</span>}
         </span>
       )}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-semibold">{formatSeconds(totalSeconds)}</span>
         <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           por ciclo
+        </span>
+        <span className="mt-1 text-[11px] font-medium text-muted-foreground">
+          {formatSeconds(studiedSeconds)} estudadas
         </span>
       </div>
     </div>
