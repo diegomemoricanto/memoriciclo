@@ -31,6 +31,39 @@ function playAlert() {
 }
 
 function formatClock(totalSeconds: number) {
+  return formatClockImpl(totalSeconds);
+}
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <input
+        type="number"
+        min={0}
+        inputMode="numeric"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-10 w-full rounded-xl border bg-card px-3 text-sm tabular-nums outline-none focus:border-mint"
+      />
+    </label>
+  );
+}
+
+function formatClockImpl(totalSeconds: number) {
   const s = Math.max(0, Math.ceil(totalSeconds));
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
