@@ -25,10 +25,7 @@ export function normalizeMindNode(raw: unknown, depth = 0): MindNode | null {
   };
 }
 
-export function mapNode(
-  node: MindNode,
-  fn: (n: MindNode) => MindNode,
-): MindNode {
+export function mapNode(node: MindNode, fn: (n: MindNode) => MindNode): MindNode {
   const next = fn(node);
   if (!next.children?.length) return next;
   return { ...next, children: next.children.map((c) => mapNode(c, fn)) };

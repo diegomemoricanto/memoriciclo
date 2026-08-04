@@ -47,12 +47,12 @@ type SessionUser = {
 async function ensureProfile(user: SessionUser) {
   const meta = user.user_metadata ?? {};
   const fullName =
-    (typeof meta['full_name'] === "string" && meta['full_name']) ||
-    (typeof meta['name'] === "string" && meta['name']) ||
+    (typeof meta["full_name"] === "string" && meta["full_name"]) ||
+    (typeof meta["name"] === "string" && meta["name"]) ||
     null;
   const avatarUrl =
-    (typeof meta['avatar_url'] === "string" && meta['avatar_url']) ||
-    (typeof meta['picture'] === "string" && meta['picture']) ||
+    (typeof meta["avatar_url"] === "string" && meta["avatar_url"]) ||
+    (typeof meta["picture"] === "string" && meta["picture"]) ||
     null;
 
   const payload = {

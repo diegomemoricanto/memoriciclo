@@ -101,12 +101,10 @@ export function MindMapPanel({ subject }: { subject: Subject | undefined }) {
       {showForm ? (
         <div className="rounded-xl border p-4">
           <div className="flex gap-2">
-            {(
-              [
-                { id: "pdf" as InputTab, label: "Enviar PDF", icon: Upload },
-                { id: "text" as InputTab, label: "Colar Texto", icon: FileText },
-              ]
-            ).map((t) => (
+            {[
+              { id: "pdf" as InputTab, label: "Enviar PDF", icon: Upload },
+              { id: "text" as InputTab, label: "Colar Texto", icon: FileText },
+            ].map((t) => (
               <button
                 key={t.id}
                 type="button"

@@ -19,7 +19,8 @@ export type RemoteStudyData = {
   subjectMindMaps: Record<string, MindNode>;
 };
 
-const nullish = <T,>(v: T | null | undefined, fallback: T) => (v === null || v === undefined ? fallback : v);
+const nullish = <T>(v: T | null | undefined, fallback: T) =>
+  v === null || v === undefined ? fallback : v;
 
 /** carrega todo o estado de estudos do usuário logado */
 export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
@@ -90,18 +91,16 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
 
 /** grava um planejamento completo (plano, disciplinas, sessões, ciclos) e o marca como ativo */
 export async function saveRemotePlan(userId: string, entry: SavedPlan) {
-  await supabase
-    .from("saved_plans")
-    .upsert(
-      {
-        id: entry.id,
-        user_id: userId,
-        name: entry.name,
-        created_at: entry.createdAt,
-        is_active: true,
-      },
-      { onConflict: "user_id,id" },
-    );
+  await supabase.from("saved_plans").upsert(
+    {
+      id: entry.id,
+      user_id: userId,
+      name: entry.name,
+      created_at: entry.createdAt,
+      is_active: true,
+    },
+    { onConflict: "user_id,id" },
+  );
   await supabase
     .from("saved_plans")
     .update({ is_active: false })
@@ -206,11 +205,12 @@ export async function resetRemoteCycle(userId: string, planId: string, completed
     .update({ studied_seconds: 0, completed: false })
     .eq("user_id", userId)
     .eq("plan_id", planId);
-  await supabase
-    .from("cycle_stats")
-    .upsert({ plan_id: planId, user_id: userId, completed_cycles: completedCycles }, {
+  await supabase.from("cycle_stats").upsert(
+    { plan_id: planId, user_id: userId, completed_cycles: completedCycles },
+    {
       onConflict: "user_id,plan_id",
-    });
+    },
+  );
 }
 
 export async function insertRemoteStudyLog(userId: string, planId: string | null, log: StudyLog) {
@@ -242,7 +242,11 @@ export async function upsertRemoteMindMap(
   );
 }
 
-export async function deleteRemoteMindMap(userId: string, scope: "topic" | "subject", refId: string) {
+export async function deleteRemoteMindMap(
+  userId: string,
+  scope: "topic" | "subject",
+  refId: string,
+) {
   await supabase
     .from("mind_maps")
     .delete()

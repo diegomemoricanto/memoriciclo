@@ -168,7 +168,9 @@ export function openPlan(id: string) {
 export function deletePlan(id: string) {
   const savedPlans = state.savedPlans.filter((p) => p.id !== id);
   const activePlanId =
-    state.activePlanId === id ? (savedPlans[savedPlans.length - 1]?.id ?? null) : state.activePlanId;
+    state.activePlanId === id
+      ? (savedPlans[savedPlans.length - 1]?.id ?? null)
+      : state.activePlanId;
   state = projectActive({ ...state, savedPlans, activePlanId });
   emit();
   const uidNow = userId();

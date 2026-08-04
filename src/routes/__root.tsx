@@ -134,40 +134,40 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGateProvider>
-      <div className="min-h-screen font-sans">
-        <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 pt-5">
-          <Link
-            to="/"
-            activeOptions={{ exact: true }}
-            className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
-          >
-            Home
-          </Link>
-          <Link
-            to="/planejamento"
-            className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
-          >
-            Planejamento
-          </Link>
-          <Link
-            to="/planejamentos"
-            className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
-          >
-            Meus Planejamentos
-          </Link>
-          <Link
-            to="/historico"
-            className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
-          >
-            Histórico
-          </Link>
-          <div className="ml-auto">
-            <UserMenu />
-          </div>
-        </nav>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </div>
+        <div className="min-h-screen font-sans">
+          <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 pt-5">
+            <Link
+              to="/"
+              activeOptions={{ exact: true }}
+              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
+            >
+              Home
+            </Link>
+            <Link
+              to="/planejamento"
+              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
+            >
+              Planejamento
+            </Link>
+            <Link
+              to="/planejamentos"
+              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
+            >
+              Meus Planejamentos
+            </Link>
+            <Link
+              to="/historico"
+              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
+            >
+              Histórico
+            </Link>
+            <div className="ml-auto">
+              <UserMenu />
+            </div>
+          </nav>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </div>
       </AuthGateProvider>
     </QueryClientProvider>
   );

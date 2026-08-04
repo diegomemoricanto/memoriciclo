@@ -227,23 +227,16 @@ export function TimerDialog({
               {subject?.name ?? "Disciplina"}
             </h2>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Fechar cronômetro"
-            onClick={handleClose}
-          >
+          <Button variant="ghost" size="icon" aria-label="Fechar cronômetro" onClick={handleClose}>
             <X />
           </Button>
         </div>
 
         <div className="mt-4 flex gap-1 rounded-full bg-muted p-1">
-          {(
-            [
-              { id: "timer" as const, label: "Cronômetro", icon: TimerIcon },
-              { id: "map" as const, label: "Mapa Mental", icon: Brain },
-            ]
-          ).map((t) => (
+          {[
+            { id: "timer" as const, label: "Cronômetro", icon: TimerIcon },
+            { id: "map" as const, label: "Mapa Mental", icon: Brain },
+          ].map((t) => (
             <button
               key={t.id}
               type="button"
@@ -262,73 +255,63 @@ export function TimerDialog({
           <MindMapPanel subject={subject} />
         ) : (
           <>
-        <p
-          aria-live="polite"
-          className={cn(
-            "mt-8 text-center text-6xl font-semibold tabular-nums tracking-tight",
-            reached && "text-mint-foreground",
-          )}
-        >
-          {formatClock(remaining)}
-        </p>
-        <p className="mt-2 text-center text-sm text-muted-foreground">
-          Meta da sessão: {formatMinutes(session.targetMinutes)} · estudado{" "}
-          {formatSeconds(Math.floor(elapsed))}
-        </p>
-
-        <div className="mt-5 h-3 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-mint transition-all"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        {reached ? (
-          <>
-            <div
-              role="alert"
-              className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-mint/25 px-4 py-3 text-center text-sm font-semibold text-mint-foreground"
-            >
-              <AlarmClock className="size-4 shrink-0" />
-              Meta atingida! Registre suas horas.
-            </div>
-            <Button
-              variant="mint"
-              size="pill"
-              className="mt-4 w-full"
-              onClick={handleFinish}
-            >
-              <Check /> Concluir
-            </Button>
-          </>
-        ) : (
-          <div className="mt-6 flex gap-2">
-            <Button
-              variant={running ? "outline" : "mint"}
-              size="pill"
-              className="flex-1"
-              onClick={toggle}
-            >
-              {running ? (
-                <>
-                  <Pause /> Pausar
-                </>
-              ) : (
-                <>
-                  <Play /> Retomar
-                </>
+            <p
+              aria-live="polite"
+              className={cn(
+                "mt-8 text-center text-6xl font-semibold tabular-nums tracking-tight",
+                reached && "text-mint-foreground",
               )}
-            </Button>
-            <Button
-              variant="outline"
-              size="pill"
-              className="flex-1"
-              onClick={handleClose}
             >
-              Salvar e sair
-            </Button>
-          </div>
-        )}
+              {formatClock(remaining)}
+            </p>
+            <p className="mt-2 text-center text-sm text-muted-foreground">
+              Meta da sessão: {formatMinutes(session.targetMinutes)} · estudado{" "}
+              {formatSeconds(Math.floor(elapsed))}
+            </p>
+
+            <div className="mt-5 h-3 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-mint transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            {reached ? (
+              <>
+                <div
+                  role="alert"
+                  className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-mint/25 px-4 py-3 text-center text-sm font-semibold text-mint-foreground"
+                >
+                  <AlarmClock className="size-4 shrink-0" />
+                  Meta atingida! Registre suas horas.
+                </div>
+                <Button variant="mint" size="pill" className="mt-4 w-full" onClick={handleFinish}>
+                  <Check /> Concluir
+                </Button>
+              </>
+            ) : (
+              <div className="mt-6 flex gap-2">
+                <Button
+                  variant={running ? "outline" : "mint"}
+                  size="pill"
+                  className="flex-1"
+                  onClick={toggle}
+                >
+                  {running ? (
+                    <>
+                      <Pause /> Pausar
+                    </>
+                  ) : (
+                    <>
+                      <Play /> Retomar
+                    </>
+                  )}
+                </Button>
+                <Button variant="outline" size="pill" className="flex-1" onClick={handleClose}>
+                  Salvar e sair
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>
