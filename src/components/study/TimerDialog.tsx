@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Brain, Check, Pause, Play, TimerIcon, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlarmClock, Brain, Check, Pause, Play, TimerIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MindMapPanel } from "./MindMapPanel";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ function playAlert() {
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
     const ctx = new Ctx();
-    [0, 0.35, 0.7].forEach((offset) => {
+    [0, 0.35, 0.7, 1.05, 1.4].forEach((offset) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
@@ -24,6 +24,51 @@ function playAlert() {
       osc.start(ctx.currentTime + offset);
       osc.stop(ctx.currentTime + offset + 0.3);
     });
+  } catch {
+    /* ignore */
+  }
+}
+
+function formatClock(totalSeconds: number) {
+  const s = Math.max(0, Math.ceil(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+}
+
+type PersistedTimer = {
+  baseElapsed: number;
+  startedAt: number | null;
+  targetSeconds: number;
+};
+
+const TIMER_KEY_PREFIX = "painel-estudos-timer:";
+
+function readPersisted(sessionId: string): PersistedTimer | null {
+  try {
+    const raw = localStorage.getItem(TIMER_KEY_PREFIX + sessionId);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedTimer;
+    if (typeof parsed?.baseElapsed !== "number") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writePersisted(sessionId: string, state: PersistedTimer) {
+  try {
+    localStorage.setItem(TIMER_KEY_PREFIX + sessionId, JSON.stringify(state));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearPersisted(sessionId: string) {
+  try {
+    localStorage.removeItem(TIMER_KEY_PREFIX + sessionId);
   } catch {
     /* ignore */
   }
@@ -46,31 +91,114 @@ export function TimerDialog({
 }) {
   const targetSeconds = session.targetMinutes * 60;
   const startRef = useRef(session.studiedSeconds);
+  /** base = segundos já acumulados enquanto pausado; startedAt = timestamp do trecho em andamento */
+  const baseRef = useRef(session.studiedSeconds);
+  const startedAtRef = useRef<number | null>(null);
   const [elapsed, setElapsed] = useState(session.studiedSeconds);
-  const [running, setRunning] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [ready, setReady] = useState(false);
   const reached = elapsed >= targetSeconds;
   const alerted = useRef(false);
   const [tab, setTab] = useState<"timer" | "map">("timer");
+  const remaining = Math.max(0, targetSeconds - elapsed);
 
+  const persist = useCallback(() => {
+    writePersisted(session.id, {
+      baseElapsed: baseRef.current,
+      startedAt: startedAtRef.current,
+      targetSeconds,
+    });
+  }, [session.id, targetSeconds]);
+
+  const compute = useCallback(() => {
+    const active = startedAtRef.current !== null;
+    const live = active ? (Date.now() - (startedAtRef.current as number)) / 1000 : 0;
+    return Math.min(targetSeconds, baseRef.current + live);
+  }, [targetSeconds]);
+
+  /* restaura estado persistido (ou inicia rodando) */
   useEffect(() => {
-    if (!running || reached) return;
-    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
-    return () => clearInterval(id);
-  }, [running, reached]);
+    const saved = readPersisted(session.id);
+    if (saved) {
+      baseRef.current = Math.max(saved.baseElapsed, session.studiedSeconds);
+      startedAtRef.current = saved.startedAt;
+    } else {
+      baseRef.current = session.studiedSeconds;
+      startedAtRef.current = Date.now();
+    }
+    startRef.current = session.studiedSeconds;
+    setRunning(startedAtRef.current !== null);
+    setElapsed(compute());
+    persist();
+    setReady(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.id]);
+
+  /* tick de UI baseado em tempo real (imune a throttling de aba em background) */
+  useEffect(() => {
+    if (!ready || !running) return;
+    const sync = () => setElapsed(compute());
+    sync();
+    const id = setInterval(sync, 500);
+    const onVisible = () => {
+      if (!document.hidden) sync();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [ready, running, compute]);
 
   useEffect(() => {
     if (reached && !alerted.current) {
       alerted.current = true;
+      baseRef.current = targetSeconds;
+      startedAtRef.current = null;
       setRunning(false);
+      persist();
       playAlert();
     }
-  }, [reached]);
+  }, [reached, targetSeconds, persist]);
 
   useEffect(() => {
     onTick?.(elapsed);
   }, [elapsed, onTick]);
 
-  const delta = () => Math.max(0, elapsed - startRef.current);
+  const toggle = () => {
+    if (startedAtRef.current !== null) {
+      baseRef.current = compute();
+      startedAtRef.current = null;
+      setRunning(false);
+    } else {
+      startedAtRef.current = Date.now();
+      setRunning(true);
+    }
+    setElapsed(compute());
+    persist();
+  };
+
+  const stop = () => {
+    baseRef.current = compute();
+    startedAtRef.current = null;
+  };
+
+  const handleClose = () => {
+    stop();
+    const total = baseRef.current;
+    persist();
+    onClose(total, Math.max(0, total - startRef.current));
+  };
+
+  const handleFinish = () => {
+    stop();
+    const total = baseRef.current;
+    clearPersisted(session.id);
+    onFinish(total, Math.max(0, total - startRef.current));
+  };
+
   const progress = Math.min(100, (elapsed / targetSeconds) * 100);
 
   return (
@@ -103,7 +231,7 @@ export function TimerDialog({
             variant="ghost"
             size="icon"
             aria-label="Fechar cronômetro"
-            onClick={() => onClose(elapsed, delta())}
+            onClick={handleClose}
           >
             <X />
           </Button>
@@ -134,11 +262,18 @@ export function TimerDialog({
           <MindMapPanel subject={subject} />
         ) : (
           <>
-        <p className="mt-8 text-center text-6xl font-semibold tabular-nums tracking-tight">
-          {formatSeconds(elapsed)}
+        <p
+          aria-live="polite"
+          className={cn(
+            "mt-8 text-center text-6xl font-semibold tabular-nums tracking-tight",
+            reached && "text-mint-foreground",
+          )}
+        >
+          {formatClock(remaining)}
         </p>
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          Meta da sessão: {formatMinutes(session.targetMinutes)}
+          Meta da sessão: {formatMinutes(session.targetMinutes)} · estudado{" "}
+          {formatSeconds(Math.floor(elapsed))}
         </p>
 
         <div className="mt-5 h-3 overflow-hidden rounded-full bg-muted">
@@ -150,14 +285,18 @@ export function TimerDialog({
 
         {reached ? (
           <>
-            <p className="mt-5 text-center text-sm font-medium text-mint-foreground">
-              Tempo concluído! Registre suas horas.
-            </p>
+            <div
+              role="alert"
+              className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-mint/25 px-4 py-3 text-center text-sm font-semibold text-mint-foreground"
+            >
+              <AlarmClock className="size-4 shrink-0" />
+              Meta atingida! Registre suas horas.
+            </div>
             <Button
               variant="mint"
               size="pill"
               className="mt-4 w-full"
-              onClick={() => onFinish(elapsed, delta())}
+              onClick={handleFinish}
             >
               <Check /> Concluir
             </Button>
@@ -168,7 +307,7 @@ export function TimerDialog({
               variant={running ? "outline" : "mint"}
               size="pill"
               className="flex-1"
-              onClick={() => setRunning((r) => !r)}
+              onClick={toggle}
             >
               {running ? (
                 <>
@@ -184,7 +323,7 @@ export function TimerDialog({
               variant="outline"
               size="pill"
               className="flex-1"
-              onClick={() => onClose(elapsed, delta())}
+              onClick={handleClose}
             >
               Salvar e sair
             </Button>
