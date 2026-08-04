@@ -190,7 +190,9 @@ export function addStudyLog(
 ) {
   const hasQuestions =
     !!questions &&
-    [questions.total, questions.correct, questions.wrong].some((v) => v !== null && v !== undefined);
+    [questions.total, questions.correct, questions.wrong].some(
+      (v) => v !== null && v !== undefined,
+    );
   if (durationSeconds < 1 && !hasQuestions) return;
   const log: StudyLog = {
     id: uid(),

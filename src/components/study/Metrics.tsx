@@ -140,7 +140,13 @@ export function Metrics() {
           (a, l) => a + (l.questionsTotal ?? (l.questionsCorrect ?? 0) + (l.questionsWrong ?? 0)),
           0,
         );
-        return { subject: s, answered, correct, wrong, accuracy: answered ? (correct / answered) * 100 : 0 };
+        return {
+          subject: s,
+          answered,
+          correct,
+          wrong,
+          accuracy: answered ? (correct / answered) * 100 : 0,
+        };
       })
       .filter((d) => d.answered > 0)
       .sort((a, b) => a.accuracy - b.accuracy);
@@ -211,11 +217,7 @@ export function Metrics() {
             series.reduce((a, s) => a + s.seconds, 0) / Math.max(1, series.length),
           )}
         />
-        <StatCard
-          icon={Target}
-          label="Questões respondidas"
-          value={String(questions.answered)}
-        />
+        <StatCard icon={Target} label="Questões respondidas" value={String(questions.answered)} />
       </div>
 
       <section className="rounded-2xl bg-card p-5 shadow-soft">
