@@ -89,7 +89,7 @@ function Dashboard() {
     delta: number,
     questions?: QuestionsEntry,
   ) => {
-    if (delta > 0) addStudyLog(session.subjectId, delta, questions);
+    addStudyLog(session.subjectId, delta, questions);
     updateSession(session.id, { studiedSeconds: totalSeconds, completed: true });
     setActiveId(null);
     setLiveSeconds(null);
