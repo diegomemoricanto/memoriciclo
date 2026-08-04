@@ -317,6 +317,22 @@ export function Metrics() {
                       }}
                     />
                   </div>
+                  {d.topics.length > 0 && (
+                    <ul className="mt-2 space-y-1.5 border-l-2 border-border/60 pl-3">
+                      {d.topics.map((t) => (
+                        <li key={t.key} className="flex items-center gap-2 text-xs">
+                          <span className="flex-1 truncate text-muted-foreground">{t.label}</span>
+                          <span className="text-muted-foreground">{t.answered} questões</span>
+                          <span
+                            className="w-14 text-right font-semibold"
+                            style={{ color: accuracyColor(t.accuracy ?? 0) }}
+                          >
+                            {t.accuracy === null ? "—" : `${t.accuracy.toFixed(1)}%`}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
