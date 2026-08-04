@@ -291,6 +291,115 @@ function CycleDonut({
   totalSeconds: number;
   studiedSeconds: number;
 }) {
+  return (
+    <CycleDonutInner
+      sessions={sessions}
+      subjectById={subjectById}
+      totalSeconds={totalSeconds}
+      studiedSeconds={studiedSeconds}
+    />
+  );
+}
+
+function SessionRow({
+  session,
+  subject,
+  running,
+  liveSeconds,
+  onStart,
+  onManual,
+}: {
+  session: Session;
+  subject: Subject | undefined;
+  running: boolean;
+  liveSeconds: number | null;
+  onStart: () => void;
+  onManual: (entry: ManualEntry) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const expanded = hovered || formOpen;
+  const targetSeconds = Math.max(1, session.targetMinutes * 60);
+  const studied = running && liveSeconds !== null ? liveSeconds : session.studiedSeconds;
+  const pct = session.completed ? 100 : Math.min(100, (studied / targetSeconds) * 100);
+
+  return (
+    <li
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      className={cn(
+        "relative overflow-hidden rounded-xl border bg-background p-3 pl-5 transition-all",
+        expanded ? "pb-8" : "pb-3",
+        session.completed && "opacity-70",
+        running && "border-mint",
+      )}
+    >
+      <span
+        className="absolute inset-y-0 left-0 w-1.5"
+        style={{ backgroundColor: subject?.color ?? "#ddd" }}
+      />
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className={cn("truncate text-sm font-medium", session.completed && "line-through")}>
+            {subject?.name ?? "Disciplina"}
+          </p>
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="size-3 shrink-0" />
+            {formatSeconds(studied)} / {formatMinutes(session.targetMinutes)}
+          </p>
+        </div>
+        {session.completed && (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mint/30">
+            <Check className="size-4 text-mint-foreground" />
+          </span>
+        )}
+      </div>
+
+      {expanded && (
+        <div className="mt-3">
+          <div className="flex flex-wrap gap-2">
+            {!session.completed && (
+              <Button variant="mint" size="sm" onClick={onStart}>
+                <Play /> Iniciar Estudo
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setFormOpen((v) => !v)}>
+              <Plus /> Adicionar Estudo Manualmente
+            </Button>
+          </div>
+          {formOpen && (
+            <ManualStudyForm
+              onCancel={() => setFormOpen(false)}
+              onSave={(entry) => {
+                onManual(entry);
+                setFormOpen(false);
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      <span className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
+        <span
+          className="block h-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: subject?.color ?? "#ddd" }}
+        />
+      </span>
+    </li>
+  );
+}
+
+function CycleDonutInner({
+  sessions,
+  subjectById,
+  totalSeconds,
+  studiedSeconds,
+}: {
+  sessions: Session[];
+  subjectById: Record<string, Subject | undefined>;
+  totalSeconds: number;
+  studiedSeconds: number;
+}) {
   const radius = 74;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
