@@ -193,6 +193,9 @@ export type Database = {
           duration_seconds: number
           id: string
           plan_id: string | null
+          questions_correct: number | null
+          questions_total: number | null
+          questions_wrong: number | null
           studied_at: string
           subject_id: string
           user_id: string
@@ -201,6 +204,9 @@ export type Database = {
           duration_seconds?: number
           id: string
           plan_id?: string | null
+          questions_correct?: number | null
+          questions_total?: number | null
+          questions_wrong?: number | null
           studied_at?: string
           subject_id: string
           user_id?: string
@@ -209,6 +215,9 @@ export type Database = {
           duration_seconds?: number
           id?: string
           plan_id?: string | null
+          questions_correct?: number | null
+          questions_total?: number | null
+          questions_wrong?: number | null
           studied_at?: string
           subject_id?: string
           user_id?: string
