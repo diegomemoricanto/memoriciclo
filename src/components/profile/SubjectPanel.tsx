@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Table2 } from "lucide-react";
 import { useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
@@ -75,8 +75,8 @@ export function SubjectPanel() {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <>
-                  <tr key={r.subject.id} className="border-t border-border/60">
+                <Fragment key={r.subject.id}>
+                  <tr className="border-t border-border/60">
                     <td className="w-6 py-2">
                       {r.topics.length > 0 && (
                         <button
@@ -152,7 +152,7 @@ export function SubjectPanel() {
                         </td>
                       </tr>
                     ))}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
