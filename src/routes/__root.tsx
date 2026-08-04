@@ -7,10 +7,13 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AuthGateProvider, useRequireAuth } from "@/components/auth/auth-gate";
+import { signOut, useAuth } from "@/lib/auth-store";
+import { Button } from "@/components/ui/button";
 
 function NotFoundComponent() {
   return (
@@ -130,6 +133,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AuthGateProvider>
       <div className="min-h-screen font-sans">
         <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 pt-5">
           <Link
@@ -157,10 +161,77 @@ function RootComponent() {
           >
             Histórico
           </Link>
+          <div className="ml-auto">
+            <UserMenu />
+          </div>
         </nav>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
       </div>
+      </AuthGateProvider>
     </QueryClientProvider>
+  );
+}
+
+function UserMenu() {
+  const { userId, profile, email } = useAuth();
+  const requireAuth = useRequireAuth();
+  const [open, setOpen] = useState(false);
+
+  if (!userId) {
+    return (
+      <Button variant="mint" size="sm" onClick={() => requireAuth()}>
+        Entrar
+      </Button>
+    );
+  }
+
+  const name = profile?.full_name ?? profile?.email ?? email ?? "Conta";
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label="Menu do usuário"
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-mint text-sm font-semibold text-mint-foreground"
+      >
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" />
+        ) : (
+          name.slice(0, 1).toUpperCase()
+        )}
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="Fechar menu"
+            className="fixed inset-0 z-40 cursor-default"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-2xl border bg-card p-1 shadow-soft">
+            <p className="truncate px-3 py-2 text-xs text-muted-foreground">{name}</p>
+            <Link
+              to="/perfil"
+              onClick={() => setOpen(false)}
+              className="block rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              Perfil
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                setOpen(false);
+                await signOut();
+              }}
+              className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted"
+            >
+              Sair
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

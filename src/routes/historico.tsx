@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Metrics } from "@/components/study/Metrics";
 import { useStudyState } from "@/lib/study-store";
 import { formatSeconds } from "@/lib/study-types";
 
@@ -23,6 +26,7 @@ export const Route = createFileRoute("/historico")({
 
 function HistoryPage() {
   const { subjects, studyLogs } = useStudyState();
+  const [tab, setTab] = useState<"historico" | "desempenho">("historico");
 
   const perSubject = subjects
     .map((s) => ({
@@ -51,6 +55,31 @@ function HistoryPage() {
       <p className="mt-2 text-sm text-muted-foreground">
         Registros criados a cada pausa ou conclusão de sessão.
       </p>
+
+      <div className="mt-5 flex gap-2">
+        <Button
+          variant={tab === "historico" ? "mint" : "outline"}
+          size="sm"
+          onClick={() => setTab("historico")}
+        >
+          Histórico
+        </Button>
+        <Button
+          variant={tab === "desempenho" ? "mint" : "outline"}
+          size="sm"
+          onClick={() => setTab("desempenho")}
+        >
+          Desempenho
+        </Button>
+      </div>
+
+      {tab === "desempenho" && (
+        <div className="mt-6">
+          <Metrics mode="week" />
+        </div>
+      )}
+      {tab === "historico" && (
+      <>
 
       <section className="mt-6 rounded-2xl bg-card p-5 shadow-soft">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -100,6 +129,8 @@ function HistoryPage() {
           ))}
         </div>
       </section>
+      </>
+      )}
     </main>
   );
 }

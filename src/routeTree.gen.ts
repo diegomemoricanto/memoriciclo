@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HistoricoRouteImport } from './routes/historico'
+import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanejamentoRouteImport } from './routes/planejamento'
 import { Route as PlanejamentosRouteImport } from './routes/planejamentos'
 import { Route as MapasMentaisIndexRouteImport } from './routes/mapas-mentais.index'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const HistoricoRoute = HistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanejamentoRoute = PlanejamentoRouteImport.update({
@@ -58,6 +64,7 @@ const MapasMentaisSubjectIdTopicIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/historico': typeof HistoricoRoute
+  '/perfil': typeof PerfilRoute
   '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
   '/mapas-mentais/': typeof MapasMentaisIndexRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/historico': typeof HistoricoRoute
+  '/perfil': typeof PerfilRoute
   '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
   '/mapas-mentais': typeof MapasMentaisIndexRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/historico': typeof HistoricoRoute
+  '/perfil': typeof PerfilRoute
   '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
   '/mapas-mentais/': typeof MapasMentaisIndexRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/historico'
+    | '/perfil'
     | '/planejamento'
     | '/planejamentos'
     | '/mapas-mentais/'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/historico'
+    | '/perfil'
     | '/planejamento'
     | '/planejamentos'
     | '/mapas-mentais'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/historico'
+    | '/perfil'
     | '/planejamento'
     | '/planejamentos'
     | '/mapas-mentais/'
@@ -116,6 +128,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HistoricoRoute: typeof HistoricoRoute
+  PerfilRoute: typeof PerfilRoute
   PlanejamentoRoute: typeof PlanejamentoRoute
   PlanejamentosRoute: typeof PlanejamentosRoute
   MapasMentaisIndexRoute: typeof MapasMentaisIndexRoute
@@ -137,6 +150,13 @@ declare module '@tanstack/react-router' {
       path: '/historico'
       fullPath: '/historico'
       preLoaderRoute: typeof HistoricoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/planejamento': {
@@ -180,6 +200,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HistoricoRoute: HistoricoRoute,
+  PerfilRoute: PerfilRoute,
   PlanejamentoRoute: PlanejamentoRoute,
   PlanejamentosRoute: PlanejamentosRoute,
   MapasMentaisIndexRoute: MapasMentaisIndexRoute,

@@ -1,8 +1,11 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Layers, Network, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRequireAuth } from "@/components/auth/auth-gate";
 
 export function Landing({ hasSaved, onCreate }: { hasSaved: boolean; onCreate: () => void }) {
+  const requireAuth = useRequireAuth();
+  const navigate = useNavigate();
   const features = [
     { icon: Layers, title: "Ciclos ponderados por peso", text: "Importância × conhecimento" },
     { icon: Timer, title: "Cronômetro por sessão", text: "Alerta ao bater o alvo" },
@@ -28,18 +31,22 @@ export function Landing({ hasSaved, onCreate }: { hasSaved: boolean; onCreate: (
             com o peso dela, em sessões curtas e cronometradas.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button variant="mint" size="pill" onClick={onCreate}>
+            <Button variant="mint" size="pill" onClick={() => requireAuth(onCreate)}>
               Criar Planejamento
             </Button>
-            {hasSaved && (
-              <Button variant="outline" size="pill" asChild>
-                <Link to="/planejamentos">Meus Planejamentos</Link>
-              </Button>
-            )}
-            <Button variant="outline" size="pill" asChild>
-              <Link to="/mapas-mentais">
-                <Network /> Mapas Mentais
-              </Link>
+            <Button
+              variant="outline"
+              size="pill"
+              onClick={() => requireAuth(() => navigate({ to: "/planejamentos" }))}
+            >
+              Meus Planejamentos
+            </Button>
+            <Button
+              variant="outline"
+              size="pill"
+              onClick={() => requireAuth(() => navigate({ to: "/mapas-mentais" }))}
+            >
+              <Network /> Mapas Mentais
             </Button>
           </div>
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
