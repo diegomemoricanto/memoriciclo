@@ -24,6 +24,7 @@ import {
   savePlanAndActivate,
   updateSession,
   useStudyState,
+  type QuestionsEntry,
 } from "@/lib/study-store";
 import {
   formatMinutes,
@@ -82,8 +83,13 @@ function Dashboard() {
     setLiveSeconds(null);
   };
 
-  const finishSession = (session: Session, totalSeconds: number, delta: number) => {
-    if (delta > 0) addStudyLog(session.subjectId, delta);
+  const finishSession = (
+    session: Session,
+    totalSeconds: number,
+    delta: number,
+    questions?: QuestionsEntry,
+  ) => {
+    if (delta > 0) addStudyLog(session.subjectId, delta, questions);
     updateSession(session.id, { studiedSeconds: totalSeconds, completed: true });
     setActiveId(null);
     setLiveSeconds(null);
@@ -316,7 +322,9 @@ function Dashboard() {
           session={activeSession}
           subject={subjectById[activeSession.subjectId]}
           onClose={(total, delta) => savePartial(activeSession, total, delta)}
-          onFinish={(total, delta) => finishSession(activeSession, total, delta)}
+          onFinish={(total, delta, questions) =>
+            finishSession(activeSession, total, delta, questions)
+          }
           onTick={handleTick}
         />
       )}
