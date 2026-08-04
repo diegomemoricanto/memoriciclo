@@ -69,7 +69,7 @@ export function ConsistencyCard() {
             <ChevronLeft />
           </Button>
           <span className="min-w-[110px] text-center text-sm font-medium">
-            {shortDate(range[0])} ~ {shortDate(range[range.length - 1])}
+            {shortDate(range[0]!)} ~ {shortDate(range[range.length - 1]!)}
           </span>
           <Button
             variant="outline"
