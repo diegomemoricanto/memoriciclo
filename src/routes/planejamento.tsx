@@ -284,15 +284,29 @@ function CycleDonut({
   sessions,
   subjectById,
   totalSeconds,
+  studiedSeconds,
 }: {
   sessions: Session[];
   subjectById: Record<string, Subject | undefined>;
   totalSeconds: number;
+  studiedSeconds: number;
 }) {
   const radius = 74;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
-  const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<{ label: string; sub: string; x: number; y: number } | null>(
+    null,
+  );
+
+  const bySubject = useMemo(() => {
+    const map: Record<string, { studied: number; target: number }> = {};
+    sessions.forEach((s) => {
+      const acc = (map[s.subjectId] ??= { studied: 0, target: 0 });
+      acc.studied += s.studiedSeconds;
+      acc.target += s.targetMinutes * 60;
+    });
+    return map;
+  }, [sessions]);
 
   return (
     <div
@@ -300,6 +314,15 @@ function CycleDonut({
       onPointerLeave={() => setHover(null)}
     >
       <svg viewBox="0 0 180 180" className="h-full w-full -rotate-90">
+        <circle
+          cx={90}
+          cy={90}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={34}
+          className="text-muted"
+        />
         {sessions.map((session) => {
           const share = totalSeconds
             ? (session.targetMinutes * 60) / totalSeconds
@@ -308,35 +331,55 @@ function CycleDonut({
           const gap = Math.min(1.5, length * 0.15);
           const visible = Math.max(0.5, length - gap);
           const name = subjectById[session.subjectId]?.name ?? "Disciplina";
+          const color = subjectById[session.subjectId]?.color ?? "#ddd";
+          const agg = bySubject[session.subjectId];
+          const sub = agg
+            ? `${formatSeconds(agg.studied)} / ${formatSeconds(agg.target)}`
+            : "";
+          const sessionTarget = Math.max(1, session.targetMinutes * 60);
+          const doneRatio = session.completed
+            ? 1
+            : Math.min(1, session.studiedSeconds / sessionTarget);
+          const doneLength = visible * doneRatio;
+          const show = (e: React.PointerEvent<SVGCircleElement>) => {
+            const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+            setHover({
+              label: name,
+              sub,
+              x: box ? e.clientX - box.left : 0,
+              y: box ? e.clientY - box.top : 0,
+            });
+          };
           const el = (
-            <circle
-              key={session.id}
-              cx={90}
-              cy={90}
-              r={radius}
-              fill="none"
-              stroke={subjectById[session.subjectId]?.color ?? "#ddd"}
-              strokeWidth={30}
-              strokeDasharray={`${visible} ${circumference - visible}`}
-              strokeDashoffset={-offset}
-              className="cursor-pointer"
-              onPointerEnter={(e) => {
-                const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                setHover({
-                  name,
-                  x: box ? e.clientX - box.left : 0,
-                  y: box ? e.clientY - box.top : 0,
-                });
-              }}
-              onPointerDown={(e) => {
-                const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                setHover({
-                  name,
-                  x: box ? e.clientX - box.left : 0,
-                  y: box ? e.clientY - box.top : 0,
-                });
-              }}
-            />
+            <g key={session.id}>
+              <circle
+                cx={90}
+                cy={90}
+                r={radius}
+                fill="none"
+                stroke={color}
+                strokeWidth={30}
+                strokeDasharray={`${visible} ${circumference - visible}`}
+                strokeDashoffset={-offset}
+                className="cursor-pointer"
+                onPointerEnter={show}
+                onPointerDown={show}
+              />
+              {doneLength > 0.3 && (
+                <circle
+                  cx={90}
+                  cy={90}
+                  r={radius}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={30}
+                  strokeDasharray={`${doneLength} ${circumference - doneLength}`}
+                  strokeDashoffset={-offset}
+                  className="pointer-events-none transition-all"
+                  style={{ filter: "brightness(0.68) saturate(1.6)" }}
+                />
+              )}
+            </g>
           );
           offset += length;
           return el;
@@ -345,16 +388,20 @@ function CycleDonut({
       {hover && (
         <span
           role="tooltip"
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg bg-foreground px-2 py-1 text-xs font-medium text-background shadow-soft"
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-foreground px-2 py-1 text-xs font-medium text-background shadow-soft"
           style={{ left: hover.x, top: hover.y - 6 }}
         >
-          {hover.name}
+          {hover.label}
+          {hover.sub && <span className="ml-1 opacity-70">{hover.sub}</span>}
         </span>
       )}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-semibold">{formatSeconds(totalSeconds)}</span>
         <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           por ciclo
+        </span>
+        <span className="mt-1 text-[11px] font-medium text-muted-foreground">
+          {formatSeconds(studiedSeconds)} estudadas
         </span>
       </div>
     </div>
