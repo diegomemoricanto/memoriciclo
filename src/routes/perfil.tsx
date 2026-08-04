@@ -78,28 +78,10 @@ function ProfilePage() {
         </Button>
       </section>
 
-      <div className="mt-6 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold tracking-tight">Desempenho</h2>
-        <div className="flex gap-2">
-          <Button
-            variant={mode === "week" ? "mint" : "outline"}
-            size="sm"
-            onClick={() => setMode("week")}
-          >
-            Por semana
-          </Button>
-          <Button
-            variant={mode === "day" ? "mint" : "outline"}
-            size="sm"
-            onClick={() => setMode("day")}
-          >
-            Por dia
-          </Button>
-        </div>
-      </div>
+      <h2 className="mt-6 text-xl font-semibold tracking-tight">Desempenho</h2>
 
       <div className="mt-4">
-        <Metrics mode={mode} />
+        <Metrics />
       </div>
     </main>
   );

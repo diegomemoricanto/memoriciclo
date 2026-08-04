@@ -75,7 +75,7 @@ function HistoryPage() {
 
       {tab === "desempenho" && (
         <div className="mt-6">
-          <Metrics mode="week" />
+          <Metrics />
         </div>
       )}
       {tab === "historico" && (
