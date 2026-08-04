@@ -111,8 +111,8 @@ export function TimerDialog({
   }, [session.id, targetSeconds]);
 
   const compute = useCallback(() => {
-    const running = startedAtRef.current !== null;
-    const live = running ? (Date.now() - (startedAtRef.current as number)) / 1000 : 0;
+    const active = startedAtRef.current !== null;
+    const live = active ? (Date.now() - (startedAtRef.current as number)) / 1000 : 0;
     return Math.min(targetSeconds, baseRef.current + live);
   }, [targetSeconds]);
 
