@@ -1,8 +1,9 @@
-import { useMemo } from "react";
-import { Table2 } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, Table2 } from "lucide-react";
 import { useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
 import { formatSeconds } from "@/lib/study-types";
+import { topicBreakdown } from "@/lib/topic-stats";
 
 function badgeClass(pct: number) {
   if (pct > 70) return "bg-mint text-mint-foreground";
@@ -12,6 +13,7 @@ function badgeClass(pct: number) {
 
 export function SubjectPanel() {
   const { studyLogs, subjects, savedPlans } = useStudyState();
+  const [open, setOpen] = useState<Record<string, boolean>>({});
   const rows = useMemo(() => {
     const known = allSubjects(subjects, savedPlans);
     return known
@@ -31,6 +33,7 @@ export function SubjectPanel() {
           wrong,
           total,
           accuracy: total ? (correct / total) * 100 : null,
+          topics: topicBreakdown(logs),
         };
       })
       .sort((a, b) => a.subject.name.localeCompare(b.subject.name, "pt-BR"));
@@ -54,7 +57,9 @@ export function SubjectPanel() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="pb-2 pr-3 font-semibold">Disciplinas</th>
+                <th className="pb-2 pr-3 font-semibold" colSpan={2}>
+                  Disciplinas
+                </th>
                 <th className="pb-2 pr-3 font-semibold">Tempo</th>
                 <th className="pb-2 pr-3 text-center font-semibold" title="Acertos">
                   ✓
@@ -70,32 +75,84 @@ export function SubjectPanel() {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.subject.id} className="border-t border-border/60">
-                  <td className="py-2 pr-3">
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="h-3 w-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: r.subject.color }}
-                      />
-                      <span className="truncate">{r.subject.name}</span>
-                    </span>
-                  </td>
-                  <td className="py-2 pr-3">{r.seconds > 0 ? formatSeconds(r.seconds) : "-"}</td>
-                  <td className="py-2 pr-3 text-center">{r.correct}</td>
-                  <td className="py-2 pr-3 text-center">{r.wrong}</td>
-                  <td className="py-2 pr-3 text-center">{r.total}</td>
-                  <td className="py-2 text-right">
-                    {r.accuracy === null ? (
-                      <span className="text-muted-foreground">-</span>
-                    ) : (
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass(r.accuracy)}`}
-                      >
-                        {r.accuracy.toFixed(0)}%
+                <Fragment key={r.subject.id}>
+                  <tr className="border-t border-border/60">
+                    <td className="w-6 py-2">
+                      {r.topics.length > 0 && (
+                        <button
+                          type="button"
+                          aria-label={
+                            open[r.subject.id]
+                              ? `Recolher tópicos de ${r.subject.name}`
+                              : `Expandir tópicos de ${r.subject.name}`
+                          }
+                          aria-expanded={!!open[r.subject.id]}
+                          onClick={() =>
+                            setOpen((o) => ({ ...o, [r.subject.id]: !o[r.subject.id] }))
+                          }
+                          className="text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          {open[r.subject.id] ? (
+                            <ChevronDown className="size-4" />
+                          ) : (
+                            <ChevronRight className="size-4" />
+                          )}
+                        </button>
+                      )}
+                    </td>
+                    <td className="py-2 pr-3">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-3 shrink-0 rounded-full"
+                          style={{ backgroundColor: r.subject.color }}
+                        />
+                        <span className="truncate">{r.subject.name}</span>
                       </span>
-                    )}
-                  </td>
-                </tr>
+                    </td>
+                    <td className="py-2 pr-3">{r.seconds > 0 ? formatSeconds(r.seconds) : "-"}</td>
+                    <td className="py-2 pr-3 text-center">{r.correct}</td>
+                    <td className="py-2 pr-3 text-center">{r.wrong}</td>
+                    <td className="py-2 pr-3 text-center">{r.total}</td>
+                    <td className="py-2 text-right">
+                      {r.accuracy === null ? (
+                        <span className="text-muted-foreground">-</span>
+                      ) : (
+                        <span
+                          className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass(r.accuracy)}`}
+                        >
+                          {r.accuracy.toFixed(0)}%
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                  {open[r.subject.id] &&
+                    r.topics.map((t) => (
+                      <tr
+                        key={`${r.subject.id}-${t.key}`}
+                        className="border-t border-border/40 bg-muted/30 text-xs"
+                      >
+                        <td />
+                        <td className="py-1.5 pl-4 pr-3 text-muted-foreground">{t.label}</td>
+                        <td className="py-1.5 pr-3">
+                          {t.seconds > 0 ? formatSeconds(t.seconds) : "-"}
+                        </td>
+                        <td className="py-1.5 pr-3 text-center">{t.correct}</td>
+                        <td className="py-1.5 pr-3 text-center">{t.wrong}</td>
+                        <td className="py-1.5 pr-3 text-center">{t.answered}</td>
+                        <td className="py-1.5 text-right">
+                          {t.accuracy === null ? (
+                            <span className="text-muted-foreground">-</span>
+                          ) : (
+                            <span
+                              className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${badgeClass(t.accuracy)}`}
+                            >
+                              {t.accuracy.toFixed(0)}%
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                </Fragment>
               ))}
             </tbody>
           </table>

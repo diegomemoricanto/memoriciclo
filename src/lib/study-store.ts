@@ -181,6 +181,7 @@ export type QuestionsEntry = {
   total?: number | null;
   correct?: number | null;
   wrong?: number | null;
+  topic?: string | null;
 };
 
 export function addStudyLog(
@@ -199,6 +200,7 @@ export function addStudyLog(
     subjectId,
     date: new Date().toISOString(),
     durationSeconds,
+    topic: questions?.topic?.trim() ? questions.topic.trim() : null,
     questionsTotal: questions?.total ?? null,
     questionsCorrect: questions?.correct ?? null,
     questionsWrong: questions?.wrong ?? null,
