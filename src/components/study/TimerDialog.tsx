@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MindMapPanel } from "./MindMapPanel";
 import { cn } from "@/lib/utils";
 import { formatMinutes, formatSeconds, type Session, type Subject } from "@/lib/study-types";
+import type { QuestionsEntry } from "@/lib/study-store";
 
 function playAlert() {
   try {
@@ -30,6 +31,39 @@ function playAlert() {
 }
 
 function formatClock(totalSeconds: number) {
+  return formatClockImpl(totalSeconds);
+}
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <input
+        type="number"
+        min={0}
+        inputMode="numeric"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-10 w-full rounded-xl border bg-card px-3 text-sm tabular-nums outline-none focus:border-mint"
+      />
+    </label>
+  );
+}
+
+function formatClockImpl(totalSeconds: number) {
   const s = Math.max(0, Math.ceil(totalSeconds));
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -85,7 +119,7 @@ export function TimerDialog({
   subject: Subject | undefined;
   /** salva progresso parcial (segundos totais, delta desta abertura) */
   onClose: (totalSeconds: number, deltaSeconds: number) => void;
-  onFinish: (totalSeconds: number, deltaSeconds: number) => void;
+  onFinish: (totalSeconds: number, deltaSeconds: number, questions?: QuestionsEntry) => void;
   /** notifica o tempo decorrido para atualização visual em tempo real */
   onTick?: (totalSeconds: number) => void;
 }) {
@@ -100,6 +134,10 @@ export function TimerDialog({
   const reached = elapsed >= targetSeconds;
   const alerted = useRef(false);
   const [tab, setTab] = useState<"timer" | "map">("timer");
+  const [askQuestions, setAskQuestions] = useState(false);
+  const [correct, setCorrect] = useState("");
+  const [wrong, setWrong] = useState("");
+  const [total, setTotal] = useState("");
   const remaining = Math.max(0, targetSeconds - elapsed);
 
   const persist = useCallback(() => {
@@ -192,11 +230,27 @@ export function TimerDialog({
     onClose(total, Math.max(0, total - startRef.current));
   };
 
-  const handleFinish = () => {
+  const handleFinish = (questions?: QuestionsEntry) => {
     stop();
     const total = baseRef.current;
     clearPersisted(session.id);
-    onFinish(total, Math.max(0, total - startRef.current));
+    onFinish(total, Math.max(0, total - startRef.current), questions);
+  };
+
+  const num = (v: string) => {
+    const n = Number(v);
+    return v.trim() === "" || Number.isNaN(n) ? null : Math.max(0, Math.round(n));
+  };
+  const autoTotal = (() => {
+    const c = num(correct);
+    const w = num(wrong);
+    if (c === null && w === null) return null;
+    return (c ?? 0) + (w ?? 0);
+  })();
+  const totalValue = total.trim() === "" ? autoTotal : num(total);
+
+  const submitQuestions = () => {
+    handleFinish({ total: totalValue, correct: num(correct), wrong: num(wrong) });
   };
 
   const progress = Math.min(100, (elapsed / targetSeconds) * 100);
@@ -285,9 +339,53 @@ export function TimerDialog({
                   <AlarmClock className="size-4 shrink-0" />
                   Meta atingida! Registre suas horas.
                 </div>
-                <Button variant="mint" size="pill" className="mt-4 w-full" onClick={handleFinish}>
-                  <Check /> Concluir
-                </Button>
+                {askQuestions ? (
+                  <div className="mt-5 rounded-xl border bg-background p-4">
+                    <p className="text-sm font-semibold">
+                      Quantas questões você fez sobre esse assunto?
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Todos os campos são opcionais.
+                    </p>
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <NumberField label="Acertos" value={correct} onChange={setCorrect} />
+                      <NumberField label="Erros" value={wrong} onChange={setWrong} />
+                      <NumberField
+                        label="Total"
+                        value={total}
+                        onChange={setTotal}
+                        placeholder={autoTotal === null ? "" : String(autoTotal)}
+                      />
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        variant="mint"
+                        size="pill"
+                        className="flex-1"
+                        onClick={submitQuestions}
+                      >
+                        <Check /> Salvar e concluir
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="pill"
+                        className="flex-1"
+                        onClick={() => handleFinish()}
+                      >
+                        Pular
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    variant="mint"
+                    size="pill"
+                    className="mt-4 w-full"
+                    onClick={() => setAskQuestions(true)}
+                  >
+                    <Check /> Concluir
+                  </Button>
+                )}
               </>
             ) : (
               <div className="mt-6 flex gap-2">

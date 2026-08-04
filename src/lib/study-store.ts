@@ -177,13 +177,31 @@ export function deletePlan(id: string) {
   if (uidNow) void deleteRemotePlan(uidNow, id);
 }
 
-export function addStudyLog(subjectId: string, durationSeconds: number) {
-  if (durationSeconds < 1) return;
+export type QuestionsEntry = {
+  total?: number | null;
+  correct?: number | null;
+  wrong?: number | null;
+};
+
+export function addStudyLog(
+  subjectId: string,
+  durationSeconds: number,
+  questions?: QuestionsEntry,
+) {
+  const hasQuestions =
+    !!questions &&
+    [questions.total, questions.correct, questions.wrong].some(
+      (v) => v !== null && v !== undefined,
+    );
+  if (durationSeconds < 1 && !hasQuestions) return;
   const log: StudyLog = {
     id: uid(),
     subjectId,
     date: new Date().toISOString(),
     durationSeconds,
+    questionsTotal: questions?.total ?? null,
+    questionsCorrect: questions?.correct ?? null,
+    questionsWrong: questions?.wrong ?? null,
   };
   setState({ studyLogs: [...state.studyLogs, log] });
   const uidNow = userId();

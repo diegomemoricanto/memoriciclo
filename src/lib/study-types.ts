@@ -31,6 +31,9 @@ export type StudyLog = {
   subjectId: string;
   date: string;
   durationSeconds: number;
+  questionsTotal?: number | null;
+  questionsCorrect?: number | null;
+  questionsWrong?: number | null;
 };
 
 export const SUBJECT_PALETTE = [
