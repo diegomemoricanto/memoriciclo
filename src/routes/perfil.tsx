@@ -3,6 +3,9 @@ import { useEffect } from "react";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Metrics } from "@/components/study/Metrics";
+import { ConsistencyCard } from "@/components/profile/ConsistencyCard";
+import { SubjectPanel } from "@/components/profile/SubjectPanel";
+import { RemindersCard } from "@/components/profile/RemindersCard";
 import { signOut, useAuth } from "@/lib/auth-store";
 import { useRequireAuth } from "@/components/auth/auth-gate";
 
@@ -77,7 +80,13 @@ function ProfilePage() {
         </Button>
       </section>
 
-      <h2 className="mt-6 text-xl font-semibold tracking-tight">Desempenho</h2>
+      <div className="mt-6 space-y-4">
+        <ConsistencyCard />
+        <SubjectPanel />
+        <RemindersCard />
+      </div>
+
+      <h2 className="mt-8 text-xl font-semibold tracking-tight">Desempenho</h2>
 
       <div className="mt-4">
         <Metrics />
