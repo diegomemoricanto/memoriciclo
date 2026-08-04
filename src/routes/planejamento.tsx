@@ -1,21 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
-import {
-  BarChart3,
-  Check,
-  Clock,
-  Layers,
-  Network,
-  Play,
-  RotateCcw,
-  Settings2,
-  SlidersHorizontal,
-  Timer,
-} from "lucide-react";
+import { Check, Clock, Play, Plus, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanWizard } from "@/components/study/PlanWizard";
 import { TimerDialog } from "@/components/study/TimerDialog";
+import { ManualStudyForm, type ManualEntry } from "@/components/study/ManualStudyForm";
 import { cn } from "@/lib/utils";
 import { Landing } from "@/components/study/Landing";
 import {
@@ -96,6 +85,15 @@ function Dashboard() {
   };
 
   const handleTick = useCallback((total: number) => setLiveSeconds(total), []);
+
+  const addManual = (session: Session, entry: ManualEntry) => {
+    addStudyLog(session.subjectId, entry.seconds, entry.questions);
+    const total = session.studiedSeconds + entry.seconds;
+    updateSession(session.id, {
+      studiedSeconds: total,
+      completed: total >= session.targetMinutes * 60,
+    });
+  };
 
   const activeName = savedPlans.find((p) => p.id === activePlanId)?.name;
 
@@ -190,68 +188,17 @@ function Dashboard() {
               Sequência dos estudos
             </h2>
             <ul className="scroll-visible mt-4 flex-1 space-y-4 overflow-y-auto pr-3">
-              {sessions.map((session) => {
-                const subject = subjectById[session.subjectId];
-                const running = activeId === session.id;
-                const targetSeconds = Math.max(1, session.targetMinutes * 60);
-                const studied =
-                  running && liveSeconds !== null ? liveSeconds : session.studiedSeconds;
-                const pct = session.completed
-                  ? 100
-                  : Math.min(100, (studied / targetSeconds) * 100);
-                return (
-                  <li
-                    key={session.id}
-                    className={cn(
-                      "relative flex items-center gap-3 overflow-hidden rounded-xl border bg-background p-3 pl-5",
-                      session.completed && "opacity-70",
-                      running && "border-mint",
-                    )}
-                  >
-                    <span
-                      className="absolute inset-y-0 left-0 w-1.5"
-                      style={{ backgroundColor: subject?.color ?? "#ddd" }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={cn(
-                          "truncate text-sm font-medium",
-                          session.completed && "line-through",
-                        )}
-                      >
-                        {subject?.name ?? "Disciplina"}
-                      </p>
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="size-3 shrink-0" />
-                        {formatSeconds(studied)} / {formatMinutes(session.targetMinutes)}
-                      </p>
-                    </div>
-                    {session.completed ? (
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mint/30">
-                        <Check className="size-4 text-mint-foreground" />
-                      </span>
-                    ) : (
-                      <Button
-                        variant={running ? "mint" : "outline"}
-                        size="icon"
-                        aria-label={running ? "Pausar sessão" : "Iniciar sessão"}
-                        onClick={() => openSession(session.id)}
-                      >
-                        <Play />
-                      </Button>
-                    )}
-                    <span className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
-                      <span
-                        className="block h-full transition-all"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: subject?.color ?? "#ddd",
-                        }}
-                      />
-                    </span>
-                  </li>
-                );
-              })}
+              {sessions.map((session) => (
+                <SessionRow
+                  key={session.id}
+                  session={session}
+                  subject={subjectById[session.subjectId]}
+                  running={activeId === session.id}
+                  liveSeconds={activeId === session.id ? liveSeconds : null}
+                  onStart={() => openSession(session.id)}
+                  onManual={(entry) => addManual(session, entry)}
+                />
+              ))}
             </ul>
             <Button
               variant="outline"
@@ -271,6 +218,7 @@ function Dashboard() {
             sessions={sessions}
             subjectById={subjectById}
             totalSeconds={totalTargetSeconds}
+            studiedSeconds={totalStudiedSeconds}
           />
           <div className="mt-5 flex h-3 overflow-hidden rounded-full">
             {subjects.map((s) => (
