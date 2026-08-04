@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
 import { formatSeconds, subjectWeight } from "@/lib/study-types";
+import { topicBreakdown } from "@/lib/topic-stats";
 
 type Period = "day" | "week" | "month" | "year";
 
@@ -146,6 +147,7 @@ export function Metrics() {
           correct,
           wrong,
           accuracy: answered ? (correct / answered) * 100 : 0,
+          topics: topicBreakdown(logs).filter((t) => t.answered > 0),
         };
       })
       .filter((d) => d.answered > 0)
