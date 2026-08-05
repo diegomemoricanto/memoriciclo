@@ -5,6 +5,7 @@ import type { MindNode } from "./mindmap-types";
 import { getAuth, onUserChange } from "./auth-store";
 import {
   deleteRemotePlan,
+  deleteRemoteMindMap,
   insertRemoteStudyLog,
   loadStudyData,
   resetRemoteCycle,
