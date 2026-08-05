@@ -22,6 +22,11 @@ export type RemoteStudyData = {
 const nullish = <T>(v: T | null | undefined, fallback: T) =>
   v === null || v === undefined ? fallback : v;
 
+/** lança se o Supabase retornou erro, para que a camada de sincronização possa reagir */
+function check(result: { error: { message: string } | null }, op: string) {
+  if (result.error) throw new Error(`${op}: ${result.error.message}`);
+}
+
 /** carrega todo o estado de estudos do usuário logado */
 export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
   const [plans, settings, subjects, sessions, stats, logs, maps] = await Promise.all([
