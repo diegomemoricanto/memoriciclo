@@ -303,8 +303,7 @@ export function MindMapCanvas({
                       ox: off.x,
                       oy: off.y,
                     };
-                    (e.currentTarget.closest("[data-node-ui]")?.parentElement
-                      ?.parentElement as HTMLElement | null)?.setPointerCapture?.(e.pointerId);
+                    containerRef.current?.setPointerCapture(e.pointerId);
                   }}
                 >
                   {editing && editingId === p.node.id ? (
