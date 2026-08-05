@@ -5,6 +5,7 @@ import type { MindNode } from "./mindmap-types";
 import { getAuth, onUserChange } from "./auth-store";
 import {
   deleteRemotePlan,
+  deleteRemoteMindMap,
   insertRemoteStudyLog,
   loadStudyData,
   resetRemoteCycle,
@@ -290,5 +291,15 @@ export function setSubjectMindMap(subjectId: string, map: MindNode) {
         error,
       ),
     );
+  }
+}
+
+export function removeSubjectMindMap(subjectId: string) {
+  const next = { ...state.subjectMindMaps };
+  delete next[subjectId];
+  setState({ subjectMindMaps: next });
+  const uidNow = userId();
+  if (uidNow) {
+    void deleteRemoteMindMap(uidNow, "subject", subjectId).catch(() => undefined);
   }
 }

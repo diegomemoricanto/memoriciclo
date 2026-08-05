@@ -1,16 +1,70 @@
-import { useState } from "react";
-import { FileText, Loader2, Pencil, RefreshCw, Sparkles, Upload, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  FileText,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  MoreVertical,
+  Pencil,
+  RefreshCw,
+  Share2,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { MindMapCanvas } from "./MindMapCanvas";
 import { extractPdfText } from "@/lib/pdf-text";
 import { generateMindMap } from "@/lib/mindmap.functions";
-import { setSubjectMindMap, useStudyState } from "@/lib/study-store";
+import { removeSubjectMindMap, setSubjectMindMap, useStudyState } from "@/lib/study-store";
 import { mapNode, mindUid, nodeDepth, removeNode, type MindNode } from "@/lib/mindmap-types";
 import { cn } from "@/lib/utils";
 import type { Subject } from "@/lib/study-types";
 
 type InputTab = "pdf" | "text";
+type MapMeta = { title?: string; sources?: string[] };
+
+const META_KEY = "mindMapMeta";
+
+function readMeta(subjectId: string): MapMeta {
+  if (typeof window === "undefined") return {};
+  try {
+    const all = JSON.parse(window.localStorage.getItem(META_KEY) ?? "{}") as Record<string, MapMeta>;
+    return all[subjectId] ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function writeMeta(subjectId: string, meta: MapMeta) {
+  if (typeof window === "undefined") return;
+  try {
+    const all = JSON.parse(window.localStorage.getItem(META_KEY) ?? "{}") as Record<string, MapMeta>;
+    all[subjectId] = { ...all[subjectId], ...meta };
+    window.localStorage.setItem(META_KEY, JSON.stringify(all));
+  } catch {
+    /* ignore */
+  }
+}
+
+function flatten(node: MindNode, depth = 0): string[] {
+  return [
+    `${"  ".repeat(depth)}${depth === 0 ? "" : "- "}${node.label}`,
+    ...(node.children ?? []).flatMap((c) => flatten(c, depth + 1)),
+  ];
+}
 
 export function MindMapPanel({ subject }: { subject: Subject | undefined }) {
   const { subjectMindMaps } = useStudyState();
@@ -26,6 +80,20 @@ export function MindMapPanel({ subject }: { subject: Subject | undefined }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<MindNode | null>(null);
 
+  const [title, setTitle] = useState("");
+  const [sources, setSources] = useState<string[]>([]);
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [full, setFull] = useState(false);
+  const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
+
+  useEffect(() => {
+    if (!subject) return;
+    const meta = readMeta(subject.id);
+    setTitle(meta.title ?? `${subject.name} Mapa`);
+    setSources(meta.sources ?? []);
+    setFeedback(null);
+  }, [subject?.id, subject?.name, subject]);
+
   const canGenerate = (tab === "pdf" ? !!file : text.trim().length >= 20) && !status;
   const current = editing ? draft : saved;
 
@@ -34,9 +102,11 @@ export function MindMapPanel({ subject }: { subject: Subject | undefined }) {
     setError(null);
     try {
       let content = text.trim();
+      let sourceLabel = "Texto colado";
       if (tab === "pdf" && file) {
         setStatus("Lendo o PDF...");
         content = await extractPdfText(file);
+        sourceLabel = file.name;
         if (content.length < 20) {
           throw new Error("Não foi possível extrair texto deste PDF (talvez seja digitalizado).");
         }
@@ -47,6 +117,10 @@ export function MindMapPanel({ subject }: { subject: Subject | undefined }) {
       const { tree } = await promise;
       clearTimeout(timer);
       setSubjectMindMap(subject.id, tree);
+      const nextTitle = `${subject.name} Mapa`;
+      setTitle(nextTitle);
+      setSources([sourceLabel]);
+      writeMeta(subject.id, { title: nextTitle, sources: [sourceLabel] });
       setShowInput(false);
       setEditing(false);
       setDraft(null);
@@ -92,9 +166,148 @@ export function MindMapPanel({ subject }: { subject: Subject | undefined }) {
       d ? { ...d, children: [...(d.children ?? []), { id: mindUid(), label: "Novo tópico" }] } : d,
     );
 
+  const share = async () => {
+    if (!current) return;
+    try {
+      await navigator.clipboard.writeText(`${title}\n\n${flatten(current).join("\n")}`);
+      toast.success("Mapa mental copiado para a área de transferência.");
+    } catch {
+      toast.error("Não foi possível copiar o mapa mental.");
+    }
+  };
+
+  const deleteMap = () => {
+    if (!subject) return;
+    if (!window.confirm("Excluir este mapa mental? Essa ação não pode ser desfeita.")) return;
+    removeSubjectMindMap(subject.id);
+    writeMeta(subject.id, { sources: [] });
+    setEditing(false);
+    setDraft(null);
+    setFull(false);
+    setShowInput(false);
+    toast.success("Mapa mental excluído.");
+  };
+
   if (!subject) return null;
 
   const showForm = showInput || !saved;
+
+  const titleBlock = (
+    <div className="min-w-0">
+      {titleEditing ? (
+        <input
+          autoFocus
+          defaultValue={title}
+          onBlur={(e) => {
+            const next = e.target.value.trim() || title;
+            setTitle(next);
+            writeMeta(subject.id, { title: next });
+            setTitleEditing(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            if (e.key === "Escape") setTitleEditing(false);
+          }}
+          className="w-full max-w-xs rounded-md border bg-background px-2 py-1 text-lg font-medium outline-none"
+        />
+      ) : (
+        <h3
+          className="cursor-text truncate text-lg font-medium tracking-tight"
+          title="Clique para renomear"
+          onClick={() => setTitleEditing(true)}
+        >
+          {title}
+        </h3>
+      )}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="mt-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-soft hover:text-foreground"
+          >
+            Ver {sources.length} {sources.length === 1 ? "fonte" : "fontes"}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Fontes usadas
+          </p>
+          {sources.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">Nenhuma fonte registrada.</p>
+          ) : (
+            <ul className="mt-2 space-y-1.5">
+              {sources.map((s) => (
+                <li key={s} className="flex items-center gap-2 text-sm">
+                  <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{s}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+
+  const actionIcons = (
+    <div className="flex shrink-0 items-center gap-1">
+      <button
+        type="button"
+        aria-label="Compartilhar"
+        onClick={share}
+        className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        <Share2 className="size-4" />
+      </button>
+      <button
+        type="button"
+        aria-label={full ? "Restaurar tamanho" : "Maximizar"}
+        onClick={() => setFull((v) => !v)}
+        className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        {full ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="Mais opções"
+            className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <MoreVertical className="size-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={deleteMap} className="text-destructive">
+            <Trash2 /> Excluir mapa mental
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {full && (
+        <button
+          type="button"
+          aria-label="Fechar"
+          onClick={() => setFull(false)}
+          className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <X className="size-4" />
+        </button>
+      )}
+    </div>
+  );
+
+  const canvas = (fullscreen: boolean) =>
+    current ? (
+      <MindMapCanvas
+        root={current}
+        editing={editing}
+        onRename={rename}
+        onAddChild={addChild}
+        onDelete={remove}
+        fileName={title.replace(/\s+/g, "-").toLowerCase()}
+        {...(fullscreen ? { className: "h-full rounded-none border-0" } : {})}
+      />
+    ) : null;
 
   return (
     <div className="mt-4">
@@ -182,10 +395,15 @@ export function MindMapPanel({ subject }: { subject: Subject | undefined }) {
       ) : null}
 
       {current && !showForm && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="rounded-2xl border bg-card/70 p-4 shadow-soft">
+          <div className="flex items-start justify-between gap-3">
+            {titleBlock}
+            {actionIcons}
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
-              {nodeDepth(current)} níveis · arraste para mover, use o scroll para dar zoom
+              {nodeDepth(current)} níveis · arraste os nós ou o fundo, use o scroll para dar zoom
             </p>
             <div className="flex gap-2">
               {editing ? (
@@ -227,16 +445,42 @@ export function MindMapPanel({ subject }: { subject: Subject | undefined }) {
               )}
             </div>
           </div>
-          <div className="mt-3">
-            <MindMapCanvas
-              root={current}
-              editing={editing}
-              onRename={rename}
-              onAddChild={addChild}
-              onDelete={remove}
-            />
+          <div className="mt-3">{!full && canvas(false)}</div>
+        </div>
+      )}
+
+      {full && current && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <div className="flex items-start justify-between gap-3 border-b px-6 py-4">
+            {titleBlock}
+            {actionIcons}
           </div>
-        </>
+          <div className="relative flex-1">
+            {canvas(true)}
+            <div className="absolute bottom-4 left-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setFeedback("up")}
+                className={cn(
+                  "flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm shadow-soft hover:bg-muted",
+                  feedback === "up" && "bg-mint text-mint-foreground",
+                )}
+              >
+                <ThumbsUp className="size-4" /> Conteúdo bom
+              </button>
+              <button
+                type="button"
+                onClick={() => setFeedback("down")}
+                className={cn(
+                  "flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm shadow-soft hover:bg-muted",
+                  feedback === "down" && "bg-destructive text-destructive-foreground",
+                )}
+              >
+                <ThumbsDown className="size-4" /> Conteúdo ruim
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
