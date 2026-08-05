@@ -224,30 +224,40 @@ export async function updateRemoteSession(
     ...(patch.targetMinutes !== undefined ? { target_minutes: patch.targetMinutes } : {}),
   };
   if (!Object.keys(row).length) return;
-  await supabase
-    .from("sessions")
-    .update(row)
-    .eq("user_id", userId)
-    .eq("plan_id", planId)
-    .eq("id", sessionId);
+  check(
+    await supabase
+      .from("sessions")
+      .update(row)
+      .eq("user_id", userId)
+      .eq("plan_id", planId)
+      .eq("id", sessionId),
+    "sessions.update",
+  );
 }
 
 export async function resetRemoteCycle(userId: string, planId: string, completedCycles: number) {
-  await supabase
-    .from("sessions")
-    .update({ studied_seconds: 0, completed: false })
-    .eq("user_id", userId)
-    .eq("plan_id", planId);
-  await supabase.from("cycle_stats").upsert(
+  check(
+    await supabase
+      .from("sessions")
+      .update({ studied_seconds: 0, completed: false })
+      .eq("user_id", userId)
+      .eq("plan_id", planId),
+    "sessions.reset",
+  );
+  check(
+    await supabase.from("cycle_stats").upsert(
     { plan_id: planId, user_id: userId, completed_cycles: completedCycles },
     {
       onConflict: "user_id,plan_id",
     },
+    ),
+    "cycle_stats.upsert",
   );
 }
 
 export async function insertRemoteStudyLog(userId: string, planId: string | null, log: StudyLog) {
-  await supabase.from("study_logs").insert({
+  check(
+    await supabase.from("study_logs").insert({
     id: log.id,
     user_id: userId,
     plan_id: planId,
@@ -258,7 +268,9 @@ export async function insertRemoteStudyLog(userId: string, planId: string | null
     questions_total: log.questionsTotal ?? null,
     questions_correct: log.questionsCorrect ?? null,
     questions_wrong: log.questionsWrong ?? null,
-  });
+    }),
+    "study_logs.insert",
+  );
 }
 
 export async function upsertRemoteMindMap(
@@ -267,7 +279,8 @@ export async function upsertRemoteMindMap(
   refId: string,
   data: MindNode,
 ) {
-  await supabase.from("mind_maps").upsert(
+  check(
+    await supabase.from("mind_maps").upsert(
     {
       user_id: userId,
       scope,
@@ -276,6 +289,8 @@ export async function upsertRemoteMindMap(
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,scope,ref_id" },
+    ),
+    "mind_maps.upsert",
   );
 }
 
