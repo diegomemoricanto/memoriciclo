@@ -14,6 +14,14 @@ import {
   upsertRemoteMindMap,
   type SavedPlan,
 } from "./study-repo";
+import {
+  enqueuePending,
+  flushPending,
+  getPendingSync,
+  initSyncQueue,
+  subscribePendingSync,
+  type PendingOp,
+} from "./sync-queue";
 
 export type { SavedPlan };
 
@@ -27,6 +35,7 @@ export type StudyState = {
   activePlanId: string | null;
   subjectMindMaps: Record<string, MindNode>;
   loading: boolean;
+  pendingSync: PendingOp[];
 };
 
 const empty: StudyState = {
@@ -39,6 +48,7 @@ const empty: StudyState = {
   activePlanId: null,
   subjectMindMaps: {},
   loading: true,
+  pendingSync: [],
 };
 
 let state: StudyState = empty;
@@ -62,6 +72,12 @@ function projectActive(next: StudyState): StudyState {
 function start() {
   if (started || typeof window === "undefined") return;
   started = true;
+  initSyncQueue(() => getAuth().userId);
+  state = { ...state, pendingSync: getPendingSync() };
+  subscribePendingSync(() => {
+    state = { ...state, pendingSync: [...getPendingSync()] };
+    emit();
+  });
   onUserChange((id) => {
     if (!id) {
       state = { ...empty, loading: false };
@@ -70,6 +86,7 @@ function start() {
     }
     state = { ...state, loading: true };
     emit();
+    void flushPending();
     void loadStudyData(id).then((data) => {
       state = projectActive({ ...state, ...data, loading: false });
       emit();
@@ -153,7 +170,11 @@ export function savePlanAndActivate(args: {
   emit();
 
   const uidNow = userId();
-  if (uidNow) void saveRemotePlan(uidNow, entry);
+  if (uidNow) {
+    void saveRemotePlan(uidNow, entry).catch((error) =>
+      enqueuePending({ kind: "plan", id: entry.id, entry }, error),
+    );
+  }
   return id;
 }
 
@@ -207,7 +228,12 @@ export function addStudyLog(
   };
   setState({ studyLogs: [...state.studyLogs, log] });
   const uidNow = userId();
-  if (uidNow) void insertRemoteStudyLog(uidNow, state.activePlanId, log);
+  if (uidNow) {
+    const planId = state.activePlanId;
+    void insertRemoteStudyLog(uidNow, planId, log).catch((error) =>
+      enqueuePending({ kind: "studyLog", id: log.id, planId, log }, error),
+    );
+  }
 }
 
 export function updateSession(id: string, patch: Partial<Session>) {
@@ -216,7 +242,26 @@ export function updateSession(id: string, patch: Partial<Session>) {
   });
   const uidNow = userId();
   if (uidNow && state.activePlanId) {
-    void updateRemoteSession(uidNow, state.activePlanId, id, patch);
+    const planId = state.activePlanId;
+    const merged = state.sessions.find((s) => s.id === id);
+    void updateRemoteSession(uidNow, planId, id, patch).catch((error) =>
+      enqueuePending(
+        {
+          kind: "session",
+          id,
+          planId,
+          sessionId: id,
+          patch: merged
+            ? {
+                studiedSeconds: merged.studiedSeconds,
+                completed: merged.completed,
+                targetMinutes: merged.targetMinutes,
+              }
+            : patch,
+        },
+        error,
+      ),
+    );
   }
 }
 
@@ -228,12 +273,22 @@ export function restartCycle() {
   });
   const uidNow = userId();
   if (uidNow && state.activePlanId) {
-    void resetRemoteCycle(uidNow, state.activePlanId, completedCycles);
+    const planId = state.activePlanId;
+    void resetRemoteCycle(uidNow, planId, completedCycles).catch((error) =>
+      enqueuePending({ kind: "cycleReset", id: planId, planId, completedCycles }, error),
+    );
   }
 }
 
 export function setSubjectMindMap(subjectId: string, map: MindNode) {
   setState({ subjectMindMaps: { ...state.subjectMindMaps, [subjectId]: map } });
   const uidNow = userId();
-  if (uidNow) void upsertRemoteMindMap(uidNow, "subject", subjectId, map);
+  if (uidNow) {
+    void upsertRemoteMindMap(uidNow, "subject", subjectId, map).catch((error) =>
+      enqueuePending(
+        { kind: "mindMap", id: subjectId, scope: "subject", refId: subjectId, data: map },
+        error,
+      ),
+    );
+  }
 }

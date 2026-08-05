@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthGateProvider, useRequireAuth } from "@/components/auth/auth-gate";
 import { signOut, useAuth } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -167,6 +168,7 @@ function RootComponent() {
           </nav>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
+          <Toaster />
         </div>
       </AuthGateProvider>
     </QueryClientProvider>

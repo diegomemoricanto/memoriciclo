@@ -22,6 +22,11 @@ export type RemoteStudyData = {
 const nullish = <T>(v: T | null | undefined, fallback: T) =>
   v === null || v === undefined ? fallback : v;
 
+/** lança se o Supabase retornou erro, para que a camada de sincronização possa reagir */
+function check(result: { error: { message: string } | null }, op: string) {
+  if (result.error) throw new Error(`${op}: ${result.error.message}`);
+}
+
 /** carrega todo o estado de estudos do usuário logado */
 export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
   const [plans, settings, subjects, sessions, stats, logs, maps] = await Promise.all([
@@ -95,7 +100,8 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
 
 /** grava um planejamento completo (plano, disciplinas, sessões, ciclos) e o marca como ativo */
 export async function saveRemotePlan(userId: string, entry: SavedPlan) {
-  await supabase.from("saved_plans").upsert(
+  check(
+    await supabase.from("saved_plans").upsert(
     {
       id: entry.id,
       user_id: userId,
@@ -104,14 +110,20 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
       is_active: true,
     },
     { onConflict: "user_id,id" },
+    ),
+    "saved_plans.upsert",
   );
-  await supabase
-    .from("saved_plans")
-    .update({ is_active: false })
-    .eq("user_id", userId)
-    .neq("id", entry.id);
+  check(
+    await supabase
+      .from("saved_plans")
+      .update({ is_active: false })
+      .eq("user_id", userId)
+      .neq("id", entry.id),
+    "saved_plans.deactivate",
+  );
 
-  await supabase.from("plan_settings").upsert(
+  check(
+    await supabase.from("plan_settings").upsert(
     {
       plan_id: entry.id,
       user_id: userId,
@@ -121,21 +133,33 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
       max_session_minutes: entry.plan.maxSessionMinutes ?? null,
     },
     { onConflict: "user_id,plan_id" },
+    ),
+    "plan_settings.upsert",
   );
-  await supabase.from("cycle_stats").upsert(
+  check(
+    await supabase.from("cycle_stats").upsert(
     {
       plan_id: entry.id,
       user_id: userId,
       completed_cycles: entry.cycleStats.completedCycles,
     },
     { onConflict: "user_id,plan_id" },
+    ),
+    "cycle_stats.upsert",
   );
 
-  await supabase.from("sessions").delete().eq("user_id", userId).eq("plan_id", entry.id);
-  await supabase.from("subjects").delete().eq("user_id", userId).eq("plan_id", entry.id);
+  check(
+    await supabase.from("sessions").delete().eq("user_id", userId).eq("plan_id", entry.id),
+    "sessions.delete",
+  );
+  check(
+    await supabase.from("subjects").delete().eq("user_id", userId).eq("plan_id", entry.id),
+    "subjects.delete",
+  );
 
   if (entry.subjects.length) {
-    await supabase.from("subjects").insert(
+    check(
+      await supabase.from("subjects").insert(
       entry.subjects.map((s, i) => ({
         id: s.id,
         plan_id: entry.id,
@@ -148,10 +172,13 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
         max_session_minutes: s.maxSessionMinutes ?? null,
         position: i,
       })),
+      ),
+      "subjects.insert",
     );
   }
   if (entry.sessions.length) {
-    await supabase.from("sessions").insert(
+    check(
+      await supabase.from("sessions").insert(
       entry.sessions.map((s) => ({
         id: s.id,
         plan_id: entry.id,
@@ -162,6 +189,8 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
         completed: s.completed,
         order_index: s.order,
       })),
+      ),
+      "sessions.insert",
     );
   }
 }
@@ -195,30 +224,40 @@ export async function updateRemoteSession(
     ...(patch.targetMinutes !== undefined ? { target_minutes: patch.targetMinutes } : {}),
   };
   if (!Object.keys(row).length) return;
-  await supabase
-    .from("sessions")
-    .update(row)
-    .eq("user_id", userId)
-    .eq("plan_id", planId)
-    .eq("id", sessionId);
+  check(
+    await supabase
+      .from("sessions")
+      .update(row)
+      .eq("user_id", userId)
+      .eq("plan_id", planId)
+      .eq("id", sessionId),
+    "sessions.update",
+  );
 }
 
 export async function resetRemoteCycle(userId: string, planId: string, completedCycles: number) {
-  await supabase
-    .from("sessions")
-    .update({ studied_seconds: 0, completed: false })
-    .eq("user_id", userId)
-    .eq("plan_id", planId);
-  await supabase.from("cycle_stats").upsert(
+  check(
+    await supabase
+      .from("sessions")
+      .update({ studied_seconds: 0, completed: false })
+      .eq("user_id", userId)
+      .eq("plan_id", planId),
+    "sessions.reset",
+  );
+  check(
+    await supabase.from("cycle_stats").upsert(
     { plan_id: planId, user_id: userId, completed_cycles: completedCycles },
     {
       onConflict: "user_id,plan_id",
     },
+    ),
+    "cycle_stats.upsert",
   );
 }
 
 export async function insertRemoteStudyLog(userId: string, planId: string | null, log: StudyLog) {
-  await supabase.from("study_logs").insert({
+  check(
+    await supabase.from("study_logs").insert({
     id: log.id,
     user_id: userId,
     plan_id: planId,
@@ -229,7 +268,9 @@ export async function insertRemoteStudyLog(userId: string, planId: string | null
     questions_total: log.questionsTotal ?? null,
     questions_correct: log.questionsCorrect ?? null,
     questions_wrong: log.questionsWrong ?? null,
-  });
+    }),
+    "study_logs.insert",
+  );
 }
 
 export async function upsertRemoteMindMap(
@@ -238,7 +279,8 @@ export async function upsertRemoteMindMap(
   refId: string,
   data: MindNode,
 ) {
-  await supabase.from("mind_maps").upsert(
+  check(
+    await supabase.from("mind_maps").upsert(
     {
       user_id: userId,
       scope,
@@ -247,6 +289,8 @@ export async function upsertRemoteMindMap(
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,scope,ref_id" },
+    ),
+    "mind_maps.upsert",
   );
 }
 
