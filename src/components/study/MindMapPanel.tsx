@@ -305,7 +305,7 @@ export function MindMapPanel({ subject }: { subject: Subject | undefined }) {
         onAddChild={addChild}
         onDelete={remove}
         fileName={title.replace(/\s+/g, "-").toLowerCase()}
-        className={fullscreen ? "h-full rounded-none border-0" : undefined}
+        {...(fullscreen ? { className: "h-full rounded-none border-0" } : {})}
       />
     ) : null;
 
