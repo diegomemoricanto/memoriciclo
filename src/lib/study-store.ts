@@ -292,3 +292,13 @@ export function setSubjectMindMap(subjectId: string, map: MindNode) {
     );
   }
 }
+
+export function removeSubjectMindMap(subjectId: string) {
+  const next = { ...state.subjectMindMaps };
+  delete next[subjectId];
+  setState({ subjectMindMaps: next });
+  const uidNow = userId();
+  if (uidNow) {
+    void deleteRemoteMindMap(uidNow, "subject", subjectId).catch(() => undefined);
+  }
+}
