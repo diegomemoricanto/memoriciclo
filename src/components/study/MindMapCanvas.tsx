@@ -106,7 +106,15 @@ export function MindMapCanvas({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nodeOffsets, setNodeOffsets] = useState<Record<string, { x: number; y: number }>>({});
   const panDrag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const nodeDrag = useRef<{ id: string; x: number; y: number; ox: number; oy: number } | null>(null);
+  const nodeDrag = useRef<{
+    id: string;
+    x: number;
+    y: number;
+    ox: number;
+    oy: number;
+    active: boolean;
+    pointerId: number;
+  } | null>(null);
 
   const { placed, width, height } = useMemo(() => layout(root, collapsed), [root, collapsed]);
 
@@ -207,6 +215,17 @@ export function MindMapCanvas({
         onPointerMove={(e) => {
           const nd = nodeDrag.current;
           if (nd) {
+            if (!nd.active) {
+              const dx = e.clientX - nd.x;
+              const dy = e.clientY - nd.y;
+              if (Math.hypot(dx, dy) < 5) return;
+              nd.active = true;
+              try {
+                e.currentTarget.setPointerCapture(nd.pointerId);
+              } catch {
+                /* ignore */
+              }
+            }
             const k = stateRef.current.zoom;
             setNodeOffsets((prev) => ({
               ...prev,
@@ -294,7 +313,6 @@ export function MindMapCanvas({
                   style={{ ...style, width: self.w, height: PILL_H }}
                   onPointerDown={(e) => {
                     if (editingId === p.node.id) return;
-                    e.stopPropagation();
                     const off = nodeOffsets[p.node.id] ?? { x: 0, y: 0 };
                     nodeDrag.current = {
                       id: p.node.id,
@@ -302,8 +320,17 @@ export function MindMapCanvas({
                       y: e.clientY,
                       ox: off.x,
                       oy: off.y,
+                      active: false,
+                      pointerId: e.pointerId,
                     };
-                    containerRef.current?.setPointerCapture(e.pointerId);
+                  }}
+                  onDoubleClick={() => {
+                    setNodeOffsets((prev) => {
+                      if (!prev[p.node.id]) return prev;
+                      const next = { ...prev };
+                      delete next[p.node.id];
+                      return next;
+                    });
                   }}
                 >
                   {editing && editingId === p.node.id ? (

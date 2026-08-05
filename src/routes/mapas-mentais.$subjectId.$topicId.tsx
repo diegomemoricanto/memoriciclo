@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, Network, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, Check, Maximize2, Minimize2, Network, Pencil, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSubjectTopics } from "@/lib/topics-store";
@@ -27,6 +27,7 @@ function TopicPage() {
   const topic = (useSubjectTopics()[subjectId] ?? []).find((t) => t.id === topicId);
   const map = useMindMaps()[topicId];
   const [editing, setEditing] = useState(false);
+  const [full, setFull] = useState(false);
 
   const rename = (id: string, label: string) => {
     if (!map) return;
@@ -83,6 +84,14 @@ function TopicPage() {
                 </>
               )}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Maximizar"
+              onClick={() => setFull(true)}
+            >
+              <Maximize2 />
+            </Button>
           </div>
         )}
       </div>
@@ -98,13 +107,52 @@ function TopicPage() {
         </div>
       ) : (
         <div className="mt-6 rounded-2xl border bg-card/70 p-3 shadow-soft">
-          <MindMapCanvas
-            root={map}
-            editing={editing}
-            onRename={rename}
-            onAddChild={addChild}
-            onDelete={remove}
-          />
+          {!full && (
+            <MindMapCanvas
+              root={map}
+              editing={editing}
+              onRename={rename}
+              onAddChild={addChild}
+              onDelete={remove}
+              fileName={(topic?.name ?? "mapa-mental").replace(/\s+/g, "-").toLowerCase()}
+            />
+          )}
+        </div>
+      )}
+      {full && map && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <div className="flex items-center justify-between gap-3 border-b px-6 py-4">
+            <h2 className="truncate text-lg font-semibold">{topic?.name ?? "Assunto"}</h2>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Restaurar tamanho"
+                onClick={() => setFull(false)}
+                className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <Minimize2 className="size-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Fechar"
+                onClick={() => setFull(false)}
+                className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+          <div className="relative flex-1">
+            <MindMapCanvas
+              root={map}
+              editing={editing}
+              onRename={rename}
+              onAddChild={addChild}
+              onDelete={remove}
+              className="h-full rounded-none border-0"
+              fileName={(topic?.name ?? "mapa-mental").replace(/\s+/g, "-").toLowerCase()}
+            />
+          </div>
         </div>
       )}
     </main>
