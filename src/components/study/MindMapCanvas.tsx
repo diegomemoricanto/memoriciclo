@@ -313,7 +313,6 @@ export function MindMapCanvas({
                   style={{ ...style, width: self.w, height: PILL_H }}
                   onPointerDown={(e) => {
                     if (editingId === p.node.id) return;
-                    e.stopPropagation();
                     const off = nodeOffsets[p.node.id] ?? { x: 0, y: 0 };
                     nodeDrag.current = {
                       id: p.node.id,
@@ -321,8 +320,17 @@ export function MindMapCanvas({
                       y: e.clientY,
                       ox: off.x,
                       oy: off.y,
+                      active: false,
+                      pointerId: e.pointerId,
                     };
-                    containerRef.current?.setPointerCapture(e.pointerId);
+                  }}
+                  onDoubleClick={() => {
+                    setNodeOffsets((prev) => {
+                      if (!prev[p.node.id]) return prev;
+                      const next = { ...prev };
+                      delete next[p.node.id];
+                      return next;
+                    });
                   }}
                 >
                   {editing && editingId === p.node.id ? (
