@@ -106,7 +106,15 @@ export function MindMapCanvas({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nodeOffsets, setNodeOffsets] = useState<Record<string, { x: number; y: number }>>({});
   const panDrag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const nodeDrag = useRef<{ id: string; x: number; y: number; ox: number; oy: number } | null>(null);
+  const nodeDrag = useRef<{
+    id: string;
+    x: number;
+    y: number;
+    ox: number;
+    oy: number;
+    active: boolean;
+    pointerId: number;
+  } | null>(null);
 
   const { placed, width, height } = useMemo(() => layout(root, collapsed), [root, collapsed]);
 
@@ -207,6 +215,17 @@ export function MindMapCanvas({
         onPointerMove={(e) => {
           const nd = nodeDrag.current;
           if (nd) {
+            if (!nd.active) {
+              const dx = e.clientX - nd.x;
+              const dy = e.clientY - nd.y;
+              if (Math.hypot(dx, dy) < 5) return;
+              nd.active = true;
+              try {
+                e.currentTarget.setPointerCapture(nd.pointerId);
+              } catch {
+                /* ignore */
+              }
+            }
             const k = stateRef.current.zoom;
             setNodeOffsets((prev) => ({
               ...prev,
