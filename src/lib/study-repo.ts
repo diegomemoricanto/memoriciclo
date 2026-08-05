@@ -100,7 +100,8 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
 
 /** grava um planejamento completo (plano, disciplinas, sessões, ciclos) e o marca como ativo */
 export async function saveRemotePlan(userId: string, entry: SavedPlan) {
-  await supabase.from("saved_plans").upsert(
+  check(
+    await supabase.from("saved_plans").upsert(
     {
       id: entry.id,
       user_id: userId,
@@ -109,14 +110,20 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
       is_active: true,
     },
     { onConflict: "user_id,id" },
+    ),
+    "saved_plans.upsert",
   );
-  await supabase
-    .from("saved_plans")
-    .update({ is_active: false })
-    .eq("user_id", userId)
-    .neq("id", entry.id);
+  check(
+    await supabase
+      .from("saved_plans")
+      .update({ is_active: false })
+      .eq("user_id", userId)
+      .neq("id", entry.id),
+    "saved_plans.deactivate",
+  );
 
-  await supabase.from("plan_settings").upsert(
+  check(
+    await supabase.from("plan_settings").upsert(
     {
       plan_id: entry.id,
       user_id: userId,
@@ -126,21 +133,33 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
       max_session_minutes: entry.plan.maxSessionMinutes ?? null,
     },
     { onConflict: "user_id,plan_id" },
+    ),
+    "plan_settings.upsert",
   );
-  await supabase.from("cycle_stats").upsert(
+  check(
+    await supabase.from("cycle_stats").upsert(
     {
       plan_id: entry.id,
       user_id: userId,
       completed_cycles: entry.cycleStats.completedCycles,
     },
     { onConflict: "user_id,plan_id" },
+    ),
+    "cycle_stats.upsert",
   );
 
-  await supabase.from("sessions").delete().eq("user_id", userId).eq("plan_id", entry.id);
-  await supabase.from("subjects").delete().eq("user_id", userId).eq("plan_id", entry.id);
+  check(
+    await supabase.from("sessions").delete().eq("user_id", userId).eq("plan_id", entry.id),
+    "sessions.delete",
+  );
+  check(
+    await supabase.from("subjects").delete().eq("user_id", userId).eq("plan_id", entry.id),
+    "subjects.delete",
+  );
 
   if (entry.subjects.length) {
-    await supabase.from("subjects").insert(
+    check(
+      await supabase.from("subjects").insert(
       entry.subjects.map((s, i) => ({
         id: s.id,
         plan_id: entry.id,
@@ -153,10 +172,13 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
         max_session_minutes: s.maxSessionMinutes ?? null,
         position: i,
       })),
+      ),
+      "subjects.insert",
     );
   }
   if (entry.sessions.length) {
-    await supabase.from("sessions").insert(
+    check(
+      await supabase.from("sessions").insert(
       entry.sessions.map((s) => ({
         id: s.id,
         plan_id: entry.id,
@@ -167,6 +189,8 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
         completed: s.completed,
         order_index: s.order,
       })),
+      ),
+      "sessions.insert",
     );
   }
 }
