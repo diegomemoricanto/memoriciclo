@@ -28,7 +28,12 @@ export function useTopicImages(topicId: string) {
   const [uploading, setUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(getAuth().userId);
 
-  useEffect(() => onUserChange(setUserId), []);
+  useEffect(() => {
+    const off = onUserChange(setUserId);
+    return () => {
+      off();
+    };
+  }, []);
 
   const reload = useCallback(async () => {
     if (!userId) {
