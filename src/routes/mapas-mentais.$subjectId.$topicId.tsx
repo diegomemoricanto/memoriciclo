@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useSubjectTopics } from "@/lib/topics-store";
 import { createMindMap, setMindMap, useMindMaps } from "@/lib/mindmaps-store";
 import { MindMapCanvas } from "@/components/study/MindMapCanvas";
+import { TopicImages } from "@/components/study/TopicImages";
 import { mapNode, mindUid, removeNode, type MindNode } from "@/lib/mindmap-types";
 
 export const Route = createFileRoute("/mapas-mentais/$subjectId/$topicId")({
@@ -28,6 +29,7 @@ function TopicPage() {
   const map = useMindMaps()[topicId];
   const [editing, setEditing] = useState(false);
   const [full, setFull] = useState(false);
+  const [tab, setTab] = useState<"map" | "images">("map");
 
   const rename = (id: string, label: string) => {
     if (!map) return;
@@ -62,7 +64,7 @@ function TopicPage() {
       </Button>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">{topic?.name ?? "Assunto"}</h1>
-        {map && (
+        {tab === "map" && map && (
           <div className="flex items-center gap-2">
             {editing && (
               <Button variant="outline" size="sm" onClick={() => addChild(map.id)}>
@@ -95,7 +97,30 @@ function TopicPage() {
           </div>
         )}
       </div>
-      {!map ? (
+      <div className="mt-4 inline-flex rounded-full border bg-muted/40 p-1">
+        {(
+          [
+            ["map", "Mapa Interativo"],
+            ["images", "Imagens"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              tab === key
+                ? "bg-mint text-mint-foreground shadow-soft"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "images" ? (
+        <TopicImages topicId={topicId} {...(topic?.name ? { topicName: topic.name } : {})} />
+      ) : !map ? (
         <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border bg-card/70 p-12 text-center shadow-soft">
           <Network className="size-6 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
