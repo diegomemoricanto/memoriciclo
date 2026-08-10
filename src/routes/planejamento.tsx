@@ -88,10 +88,10 @@ function Dashboard() {
 
   const addManual = (session: Session, entry: ManualEntry) => {
     addStudyLog(session.subjectId, entry.seconds, entry.questions);
-    const total = session.studiedSeconds + entry.seconds;
+    const total = session.studiedSeconds + Math.max(0, entry.seconds);
     updateSession(session.id, {
       studiedSeconds: total,
-      completed: total >= session.targetMinutes * 60,
+      completed: session.completed || total >= session.targetMinutes * 60,
     });
   };
 
