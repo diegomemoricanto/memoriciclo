@@ -278,13 +278,19 @@ export async function updateRemoteStudyLog(
   id: string,
   patch: Partial<StudyLog>,
 ) {
-  const payload: Record<string, unknown> = {};
-  if (patch.durationSeconds !== undefined) payload.duration_seconds = patch.durationSeconds;
-  if (patch.topic !== undefined) payload.topic = patch.topic ?? null;
-  if (patch.questionsTotal !== undefined) payload.questions_total = patch.questionsTotal ?? null;
-  if (patch.questionsCorrect !== undefined)
-    payload.questions_correct = patch.questionsCorrect ?? null;
-  if (patch.questionsWrong !== undefined) payload.questions_wrong = patch.questionsWrong ?? null;
+  const payload = {
+    ...(patch.durationSeconds !== undefined ? { duration_seconds: patch.durationSeconds } : {}),
+    ...(patch.topic !== undefined ? { topic: patch.topic ?? null } : {}),
+    ...(patch.questionsTotal !== undefined
+      ? { questions_total: patch.questionsTotal ?? null }
+      : {}),
+    ...(patch.questionsCorrect !== undefined
+      ? { questions_correct: patch.questionsCorrect ?? null }
+      : {}),
+    ...(patch.questionsWrong !== undefined
+      ? { questions_wrong: patch.questionsWrong ?? null }
+      : {}),
+  };
   if (Object.keys(payload).length === 0) return;
   check(
     await supabase.from("study_logs").update(payload).eq("user_id", userId).eq("id", id),
