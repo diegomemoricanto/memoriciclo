@@ -274,6 +274,7 @@ export async function insertRemoteStudyLog(userId: string, planId: string | null
 }
 
 export async function upsertRemoteMindMap(
+  scope: "topic" | "subject",
   userId: string,
   scope: "topic" | "subject",
   refId: string,
