@@ -240,6 +240,57 @@ export function addStudyLog(
 }
 
 export function updateSession(id: string, patch: Partial<Session>) {
+  return updateSessionInternal(id, patch);
+}
+
+/** encontra os logs de um grupo disciplina + tópico */
+function topicGroupLogs(subjectId: string, topicKey: string) {
+  return state.studyLogs.filter(
+    (l) => l.subjectId === subjectId && (l.topic?.trim() || "Geral") === topicKey,
+  );
+}
+
+/** edita um assunto (grupo de logs): consolida no primeiro log e remove os demais */
+export function updateTopicGroup(
+  subjectId: string,
+  topicKey: string,
+  next: { label: string; seconds: number; correct: number; wrong: number },
+) {
+  const group = topicGroupLogs(subjectId, topicKey);
+  if (group.length === 0) return;
+  const [keep, ...rest] = group;
+  const label = next.label.trim();
+  const patch = {
+    topic: label && label !== "Geral" ? label : null,
+    durationSeconds: Math.max(0, Math.round(next.seconds)),
+    questionsCorrect: Math.max(0, Math.round(next.correct)),
+    questionsWrong: Math.max(0, Math.round(next.wrong)),
+    questionsTotal: Math.max(0, Math.round(next.correct)) + Math.max(0, Math.round(next.wrong)),
+  };
+  const removed = new Set(rest.map((l) => l.id));
+  setState({
+    studyLogs: state.studyLogs
+      .filter((l) => !removed.has(l.id))
+      .map((l) => (l.id === keep!.id ? { ...l, ...patch } : l)),
+  });
+  const uidNow = userId();
+  if (uidNow) {
+    void updateRemoteStudyLog(uidNow, keep!.id, patch).catch(() => undefined);
+    void deleteRemoteStudyLogs(uidNow, [...removed]).catch(() => undefined);
+  }
+}
+
+/** exclui todos os registros de um assunto de uma disciplina */
+export function deleteTopicGroup(subjectId: string, topicKey: string) {
+  const group = topicGroupLogs(subjectId, topicKey);
+  if (group.length === 0) return;
+  const removed = new Set(group.map((l) => l.id));
+  setState({ studyLogs: state.studyLogs.filter((l) => !removed.has(l.id)) });
+  const uidNow = userId();
+  if (uidNow) void deleteRemoteStudyLogs(uidNow, [...removed]).catch(() => undefined);
+}
+
+function updateSessionInternal(id: string, patch: Partial<Session>) {
   setState({
     sessions: state.sessions.map((s) => (s.id === id ? { ...s, ...patch } : s)),
   });
