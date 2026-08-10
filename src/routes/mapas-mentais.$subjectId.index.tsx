@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
-import { addTopic, removeTopic, useSubjectTopics } from "@/lib/topics-store";
+import { addTopic, removeTopic, reorderTopics, useSubjectTopics } from "@/lib/topics-store";
 
 export const Route = createFileRoute("/mapas-mentais/$subjectId/")({
   head: () => ({
@@ -30,6 +30,13 @@ function SubjectTopicsPage() {
 
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  const endDrag = () => {
+    setDragIndex(null);
+    setOverIndex(null);
+  };
 
   const save = () => {
     if (!name.trim()) return;
@@ -90,15 +97,44 @@ function SubjectTopicsPage() {
         </div>
       ) : (
         <ul className="mt-6 space-y-3">
-          {topics.map((t) => (
+          {topics.map((t, index) => (
             <li
               key={t.id}
-              className="flex items-center gap-2 rounded-2xl border bg-card pr-3 shadow-soft"
+              draggable
+              onDragStart={(e) => {
+                setDragIndex(index);
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", t.id);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragIndex !== null && index !== overIndex) setOverIndex(index);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragIndex !== null) reorderTopics(subjectId, dragIndex, index);
+                endDrag();
+              }}
+              onDragEnd={endDrag}
+              className={`flex items-center gap-2 rounded-2xl border bg-card pr-3 shadow-soft transition-all ${
+                dragIndex === index
+                  ? "scale-[1.01] opacity-60 shadow-lg"
+                  : overIndex === index && dragIndex !== null
+                    ? "border-primary/60 ring-2 ring-primary/40"
+                    : ""
+              }`}
             >
+              <span
+                aria-hidden
+                className="cursor-grab pl-2 text-muted-foreground active:cursor-grabbing"
+              >
+                <GripVertical className="size-4" />
+              </span>
               <Link
                 to="/mapas-mentais/$subjectId/$topicId"
                 params={{ subjectId, topicId: t.id }}
-                className="flex flex-1 items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-muted/50"
+                className="flex flex-1 items-center gap-3 rounded-2xl py-4 pl-1 pr-4 transition-colors hover:bg-muted/50"
+                draggable={false}
               >
                 <span className="flex-1 text-sm font-semibold">{t.name}</span>
                 <ChevronRight className="size-4 text-muted-foreground" />
