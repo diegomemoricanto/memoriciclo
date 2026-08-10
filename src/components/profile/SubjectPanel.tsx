@@ -114,6 +114,7 @@ export function SubjectPanel() {
                   ✏️
                 </th>
                 <th className="pb-2 text-right font-semibold">%</th>
+                <th className="w-14 pb-2" aria-label="Ações" />
               </tr>
             </thead>
             <tbody>
@@ -167,12 +168,13 @@ export function SubjectPanel() {
                         </span>
                       )}
                     </td>
+                    <td />
                   </tr>
                   {open[r.subject.id] &&
                     r.topics.map((t) => (
                       <tr
                         key={`${r.subject.id}-${t.key}`}
-                        className="border-t border-border/40 bg-muted/30 text-xs"
+                        className="group border-t border-border/40 bg-muted/30 text-xs"
                       >
                         <td />
                         <td className="py-1.5 pl-4 pr-3 text-muted-foreground">{t.label}</td>
@@ -193,6 +195,42 @@ export function SubjectPanel() {
                             </span>
                           )}
                         </td>
+                        <td className="py-1.5 pl-2 text-right">
+                          <span className="inline-flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                            <button
+                              type="button"
+                              aria-label={`Editar ${t.label}`}
+                              onClick={() =>
+                                setEditing({
+                                  subjectId: r.subject.id,
+                                  topicKey: t.key,
+                                  label: t.label,
+                                  hours: String(Math.floor(t.seconds / 3600)),
+                                  minutes: String(Math.floor((t.seconds % 3600) / 60)),
+                                  correct: String(t.correct),
+                                  wrong: String(t.wrong),
+                                })
+                              }
+                              className="text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                              <Pencil className="size-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Excluir ${t.label}`}
+                              onClick={() =>
+                                setRemoving({
+                                  subjectId: r.subject.id,
+                                  topicKey: t.key,
+                                  label: t.label,
+                                })
+                              }
+                              className="text-muted-foreground transition-colors hover:text-destructive"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </span>
+                        </td>
                       </tr>
                     ))}
                 </Fragment>
@@ -201,6 +239,129 @@ export function SubjectPanel() {
           </table>
         </div>
       )}
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar assunto</DialogTitle>
+            <DialogDescription>
+              As alterações recalculam os totais da disciplina automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-4">
+              <label className="block text-sm">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Nome do assunto
+                </span>
+                <Input
+                  className="mt-1"
+                  value={editing.label}
+                  onChange={(e) => setEditing({ ...editing, label: e.target.value })}
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Horas
+                  </span>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={0}
+                    value={editing.hours}
+                    onChange={(e) => setEditing({ ...editing, hours: e.target.value })}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Minutos
+                  </span>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={editing.minutes}
+                    onChange={(e) => setEditing({ ...editing, minutes: e.target.value })}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Acertos
+                  </span>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={0}
+                    value={editing.correct}
+                    onChange={(e) => setEditing({ ...editing, correct: e.target.value })}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Erros
+                  </span>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={0}
+                    value={editing.wrong}
+                    onChange={(e) => setEditing({ ...editing, wrong: e.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2 text-sm">
+                <span className="text-muted-foreground">
+                  {editAnswered} questão(ões) · aproveitamento
+                </span>
+                {editAccuracy === null ? (
+                  <span className="text-muted-foreground">-</span>
+                ) : (
+                  <span
+                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass(editAccuracy)}`}
+                  >
+                    {editAccuracy.toFixed(0)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              Cancelar
+            </Button>
+            <Button variant="mint" onClick={saveEdit}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir assunto</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir este assunto? Essa ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoving(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (removing) deleteTopicGroup(removing.subjectId, removing.topicKey);
+                setRemoving(null);
+              }}
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
