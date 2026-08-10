@@ -1,6 +1,16 @@
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Table2 } from "lucide-react";
-import { useStudyState } from "@/lib/study-store";
+import { ChevronDown, ChevronRight, Pencil, Table2, Trash2 } from "lucide-react";
+import { deleteTopicGroup, updateTopicGroup, useStudyState } from "@/lib/study-store";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { allSubjects } from "@/lib/mind-subjects";
 import { formatSeconds } from "@/lib/study-types";
 import { topicBreakdown } from "@/lib/topic-stats";
@@ -14,6 +24,39 @@ function badgeClass(pct: number) {
 export function SubjectPanel() {
   const { studyLogs, subjects, savedPlans } = useStudyState();
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [editing, setEditing] = useState<{
+    subjectId: string;
+    topicKey: string;
+    label: string;
+    hours: string;
+    minutes: string;
+    correct: string;
+    wrong: string;
+  } | null>(null);
+  const [removing, setRemoving] = useState<{
+    subjectId: string;
+    topicKey: string;
+    label: string;
+  } | null>(null);
+
+  const editCorrect = Math.max(0, Number(editing?.correct || 0));
+  const editWrong = Math.max(0, Number(editing?.wrong || 0));
+  const editAnswered = editCorrect + editWrong;
+  const editAccuracy = editAnswered ? (editCorrect / editAnswered) * 100 : null;
+
+  const saveEdit = () => {
+    if (!editing) return;
+    const seconds =
+      Math.max(0, Number(editing.hours || 0)) * 3600 + Math.max(0, Number(editing.minutes || 0)) * 60;
+    updateTopicGroup(editing.subjectId, editing.topicKey, {
+      label: editing.label,
+      seconds,
+      correct: editCorrect,
+      wrong: editWrong,
+    });
+    setEditing(null);
+  };
+
   const rows = useMemo(() => {
     const known = allSubjects(subjects, savedPlans);
     return known
