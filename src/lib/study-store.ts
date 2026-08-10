@@ -6,11 +6,13 @@ import { getAuth, onUserChange } from "./auth-store";
 import {
   deleteRemotePlan,
   deleteRemoteMindMap,
+  deleteRemoteStudyLogs,
   insertRemoteStudyLog,
   loadStudyData,
   resetRemoteCycle,
   saveRemotePlan,
   setRemoteActivePlan,
+  updateRemoteStudyLog,
   updateRemoteSession,
   upsertRemoteMindMap,
   type SavedPlan,
