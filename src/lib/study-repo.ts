@@ -349,15 +349,21 @@ export async function loadRemoteTopicMindMaps(userId: string): Promise<Record<st
   return Object.fromEntries((data ?? []).map((m) => [m.ref_id, m.data as unknown as MindNode]));
 }
 
-export type RemoteTopic = { id: string; subjectId: string; name: string };
+export type RemoteTopic = { id: string; subjectId: string; name: string; position?: number };
 
 export async function loadRemoteTopics(userId: string): Promise<RemoteTopic[]> {
   const { data } = await supabase
     .from("subject_topics")
     .select("*")
     .eq("user_id", userId)
+    .order("position")
     .order("created_at");
-  return (data ?? []).map((t) => ({ id: t.id, subjectId: t.subject_id, name: t.name }));
+  return (data ?? []).map((t) => ({
+    id: t.id,
+    subjectId: t.subject_id,
+    name: t.name,
+    position: t.position ?? 0,
+  }));
 }
 
 export async function insertRemoteTopic(userId: string, topic: RemoteTopic) {
@@ -366,7 +372,21 @@ export async function insertRemoteTopic(userId: string, topic: RemoteTopic) {
     user_id: userId,
     subject_id: topic.subjectId,
     name: topic.name,
+    position: topic.position ?? 0,
   });
+}
+
+/** grava a nova ordem dos assuntos de uma disciplina */
+export async function reorderRemoteTopics(userId: string, topicIds: string[]) {
+  await Promise.all(
+    topicIds.map((id, index) =>
+      supabase
+        .from("subject_topics")
+        .update({ position: index })
+        .eq("user_id", userId)
+        .eq("id", id),
+    ),
+  );
 }
 
 export async function deleteRemoteTopic(userId: string, topicId: string) {

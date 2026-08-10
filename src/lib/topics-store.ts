@@ -4,6 +4,7 @@ import {
   deleteRemoteTopic,
   insertRemoteTopic,
   loadRemoteTopics,
+  reorderRemoteTopics,
   type RemoteTopic,
 } from "./study-repo";
 
@@ -62,11 +63,12 @@ const topicUid = () => Math.random().toString(36).slice(2, 10);
 export function addTopic(subjectId: string, name: string) {
   const clean = name.trim();
   if (!clean) return;
+  const list = state[subjectId] ?? [];
   const topic: Topic = { id: topicUid(), name: clean.slice(0, 120) };
   state = { ...state, [subjectId]: [...(state[subjectId] ?? []), topic] };
   emit();
   const uidNow = userId();
-  if (uidNow) void insertRemoteTopic(uidNow, { ...topic, subjectId });
+  if (uidNow) void insertRemoteTopic(uidNow, { ...topic, subjectId, position: list.length });
 }
 
 export function removeTopic(subjectId: string, topicId: string) {
@@ -74,4 +76,18 @@ export function removeTopic(subjectId: string, topicId: string) {
   emit();
   const uidNow = userId();
   if (uidNow) void deleteRemoteTopic(uidNow, topicId);
+}
+
+/** move um assunto de posição dentro da disciplina e persiste a nova ordem */
+export function reorderTopics(subjectId: string, fromIndex: number, toIndex: number) {
+  const list = [...(state[subjectId] ?? [])];
+  if (fromIndex === toIndex) return;
+  const moved = list[fromIndex];
+  if (!moved) return;
+  list.splice(fromIndex, 1);
+  list.splice(Math.max(0, Math.min(list.length, toIndex)), 0, moved);
+  state = { ...state, [subjectId]: list };
+  emit();
+  const uidNow = userId();
+  if (uidNow) void reorderRemoteTopics(uidNow, list.map((t) => t.id));
 }
