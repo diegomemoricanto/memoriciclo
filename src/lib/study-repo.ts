@@ -273,6 +273,39 @@ export async function insertRemoteStudyLog(userId: string, planId: string | null
   );
 }
 
+export async function updateRemoteStudyLog(
+  userId: string,
+  id: string,
+  patch: Partial<StudyLog>,
+) {
+  const payload = {
+    ...(patch.durationSeconds !== undefined ? { duration_seconds: patch.durationSeconds } : {}),
+    ...(patch.topic !== undefined ? { topic: patch.topic ?? null } : {}),
+    ...(patch.questionsTotal !== undefined
+      ? { questions_total: patch.questionsTotal ?? null }
+      : {}),
+    ...(patch.questionsCorrect !== undefined
+      ? { questions_correct: patch.questionsCorrect ?? null }
+      : {}),
+    ...(patch.questionsWrong !== undefined
+      ? { questions_wrong: patch.questionsWrong ?? null }
+      : {}),
+  };
+  if (Object.keys(payload).length === 0) return;
+  check(
+    await supabase.from("study_logs").update(payload).eq("user_id", userId).eq("id", id),
+    "study_logs.update",
+  );
+}
+
+export async function deleteRemoteStudyLogs(userId: string, ids: string[]) {
+  if (ids.length === 0) return;
+  check(
+    await supabase.from("study_logs").delete().eq("user_id", userId).in("id", ids),
+    "study_logs.delete",
+  );
+}
+
 export async function upsertRemoteMindMap(
   userId: string,
   scope: "topic" | "subject",
