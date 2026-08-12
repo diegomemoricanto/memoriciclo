@@ -152,7 +152,7 @@ export function TimerDialog({
   const compute = useCallback(() => {
     const active = startedAtRef.current !== null;
     const live = active ? (Date.now() - (startedAtRef.current as number)) / 1000 : 0;
-    return Math.min(targetSeconds, baseRef.current + live);
+    return Math.min(targetSeconds, Math.round(baseRef.current + live));
   }, [targetSeconds]);
 
   /* restaura estado persistido (ou inicia rodando) */

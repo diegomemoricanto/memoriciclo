@@ -83,6 +83,23 @@ function keyOf(op: PendingOp) {
 }
 
 let notifiedFailure = false;
+const MAX_ATTEMPTS = 5;
+const attempts = new Map<string, number>();
+
+function labelOf(op: PendingOp) {
+  switch (op.kind) {
+    case "session":
+      return "progresso da sessão";
+    case "plan":
+      return "planejamento";
+    case "cycleReset":
+      return "reinício do ciclo";
+    case "mindMap":
+      return "mapa mental";
+    default:
+      return "registro de estudo";
+  }
+}
 
 export function enqueuePending(op: PendingOp, error?: unknown) {
   if (error) console.error("[sync] falha ao salvar, enfileirando", error);
@@ -145,21 +162,34 @@ export async function flushPending() {
   flushing = true;
   const had = queue.length;
   const failed: PendingOp[] = [];
+  const discarded: PendingOp[] = [];
   for (const op of queue) {
     try {
       await run(op, userId);
+      attempts.delete(keyOf(op));
     } catch (error) {
       console.error("[sync] reenvio falhou", error);
-      failed.push(op);
+      const key = keyOf(op);
+      const count = (attempts.get(key) ?? 0) + 1;
+      if (count >= MAX_ATTEMPTS) {
+        attempts.delete(key);
+        discarded.push(op);
+      } else {
+        attempts.set(key, count);
+        failed.push(op);
+      }
     }
   }
   queue = failed;
   persist();
   emit();
   flushing = false;
+  for (const op of discarded) {
+    toast.error(`Não foi possível salvar seu ${labelOf(op)} — dados inválidos, registro descartado.`);
+  }
   if (!failed.length && had) {
     notifiedFailure = false;
-    toast.success("Conexão restabelecida — seus estudos foram sincronizados.");
+    if (!discarded.length) toast.success("Conexão restabelecida — seus estudos foram sincronizados.");
   } else if (failed.length) {
     scheduleRetry();
   }
