@@ -103,12 +103,13 @@ export function generateSessions(subjects: Subject[], plan: Plan): Session[] {
     const durations: number[] = [];
 
     while (target > 0) {
-      const draw = Math.round(min + Math.random() * (max - min));
-      if (target - draw < min) {
-        // Última sessão: ajusta para fechar o total exato.
+      if (target <= max) {
+        // Sobra final cabe dentro do máximo: cria última sessão exatamente
+        // com o tempo restante (pode ficar abaixo do mínimo, mas nunca acima do máximo).
         durations.push(target);
         target = 0;
       } else {
+        const draw = Math.round(min + Math.random() * (max - min));
         durations.push(draw);
         target -= draw;
       }
