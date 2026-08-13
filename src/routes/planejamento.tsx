@@ -174,12 +174,60 @@ function Dashboard() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-24 pt-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Planejamento</h1>
-          {activeName && <p className="mt-1 text-sm text-muted-foreground">{activeName}</p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="rounded-full max-w-[280px]">
+                <Calendar className="size-4 shrink-0" />
+                <span className="truncate">
+                  {linkedContest
+                    ? `${linkedContest.name} · ${formatCountdown(linkedContest.exam_date)}`
+                    : "Vincular concurso"}
+                </span>
+                <ChevronDown className="size-4 shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel>Concurso vinculado</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup
+                value={linkedContest?.id ?? "none"}
+                onValueChange={(value) => handleLinkContest(value === "none" ? null : value)}
+              >
+                {contests.map((contest) => (
+                  <DropdownMenuRadioItem
+                    key={contest.id}
+                    value={contest.id}
+                    className="items-start py-2"
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">{contest.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatCountdown(contest.exam_date)}
+                      </span>
+                    </div>
+                  </DropdownMenuRadioItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioItem value="none">Nenhum concurso</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              {contests.length === 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/concursos" className="cursor-pointer">
+                      Cadastrar concurso
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button
             variant="outline"
             onClick={() => {
