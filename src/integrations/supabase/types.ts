@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      contests: {
+        Row: {
+          board: string | null
+          created_at: string
+          exam_date: string | null
+          id: string
+          name: string
+          plan_id: string | null
+          registered: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          board?: string | null
+          created_at?: string
+          exam_date?: string | null
+          id?: string
+          name: string
+          plan_id?: string | null
+          registered?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          board?: string | null
+          created_at?: string
+          exam_date?: string | null
+          id?: string
+          name?: string
+          plan_id?: string | null
+          registered?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contests_user_plan_fkey"
+            columns: ["user_id", "plan_id"]
+            isOneToOne: false
+            referencedRelation: "saved_plans"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
       cycle_stats: {
         Row: {
           completed_cycles: number
