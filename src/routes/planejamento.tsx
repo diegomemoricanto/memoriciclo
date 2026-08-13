@@ -1,12 +1,33 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
-import { Check, Clock, Play, Plus, RotateCcw, Settings2, SlidersHorizontal } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  ChevronDown,
+  Clock,
+  Play,
+  Plus,
+  RotateCcw,
+  Settings2,
+  SlidersHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PlanWizard } from "@/components/study/PlanWizard";
 import { TimerDialog } from "@/components/study/TimerDialog";
 import { ManualStudyForm, type ManualEntry } from "@/components/study/ManualStudyForm";
 import { cn } from "@/lib/utils";
 import { Landing } from "@/components/study/Landing";
+import { useContests, formatCountdown } from "@/lib/contests-store";
 import {
   addStudyLog,
   restartCycle,
