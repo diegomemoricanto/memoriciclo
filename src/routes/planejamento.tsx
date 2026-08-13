@@ -118,6 +118,25 @@ function Dashboard() {
 
   const activeName = savedPlans.find((p) => p.id === activePlanId)?.name;
 
+  const { contests, linkPlan } = useContests();
+  const linkedContest = useMemo(
+    () => contests.find((c) => c.plan_id === activePlanId),
+    [contests, activePlanId],
+  );
+
+  const handleLinkContest = useCallback(
+    async (contestId: string | null) => {
+      if (linkedContest?.id === contestId) return;
+      if (linkedContest?.id) {
+        await linkPlan(linkedContest.id, null);
+      }
+      if (contestId) {
+        await linkPlan(contestId, activePlanId);
+      }
+    },
+    [linkedContest, linkPlan, activePlanId],
+  );
+
   const finishWizard = (nextSubjects: Subject[], nextPlan: Plan, name: string) => {
     if (totalStudiedSeconds > 0 && sessions.length > 0) {
       const ok = window.confirm(
