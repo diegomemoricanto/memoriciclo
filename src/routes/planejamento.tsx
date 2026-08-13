@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PlanWizard } from "@/components/study/PlanWizard";
 import { TimerDialog } from "@/components/study/TimerDialog";
 import { ManualStudyForm, type ManualEntry } from "@/components/study/ManualStudyForm";
@@ -66,6 +67,14 @@ export const Route = createFileRoute("/planejamento")({
 });
 
 function Dashboard() {
+  return (
+    <ErrorBoundary message="Ocorreu um problema ao carregar o planejamento. Seu progresso salvo foi preservado.">
+      <DashboardInner />
+    </ErrorBoundary>
+  );
+}
+
+function DashboardInner() {
   const { subjects, plan, sessions, cycleStats, savedPlans, activePlanId } = useStudyState();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -353,16 +362,24 @@ function Dashboard() {
       )}
 
       {activeSession && (
-        <TimerDialog
+        <ErrorBoundary
           key={activeSession.id}
-          session={activeSession}
-          subject={subjectById[activeSession.subjectId]}
-          onClose={(total, delta) => savePartial(activeSession, total, delta)}
-          onFinish={(total, delta, questions) =>
-            finishSession(activeSession, total, delta, questions)
-          }
-          onTick={handleTick}
-        />
+          message="Ocorreu um problema ao atualizar o cronômetro, tente fechar e abrir a sessão novamente."
+          onReset={() => {
+            setActiveId(null);
+            setLiveSeconds(null);
+          }}
+        >
+          <TimerDialog
+            session={activeSession}
+            subject={subjectById[activeSession.subjectId]}
+            onClose={(total, delta) => savePartial(activeSession, total, delta)}
+            onFinish={(total, delta, questions) =>
+              finishSession(activeSession, total, delta, questions)
+            }
+            onTick={handleTick}
+          />
+        </ErrorBoundary>
       )}
     </main>
   );
