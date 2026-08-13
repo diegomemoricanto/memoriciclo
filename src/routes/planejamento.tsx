@@ -530,9 +530,7 @@ function CycleDonutInner({
           const name = subjectById[session.subjectId]?.name ?? "Disciplina";
           const color = subjectById[session.subjectId]?.color ?? "#ddd";
           const agg = bySubject[session.subjectId];
-          const sub = agg
-            ? `${formatSeconds(agg.studied)} / ${formatSeconds(agg.target)}`
-            : "";
+          const sub = agg ? `${formatSeconds(agg.studied)} / ${formatSeconds(agg.target)}` : "";
           const sessionTarget = Math.max(1, session.targetMinutes * 60);
           const doneRatio = session.completed
             ? 1
