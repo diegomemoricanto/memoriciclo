@@ -128,8 +128,13 @@ export function TimerDialog({
   /** base = segundos já acumulados enquanto pausado; startedAt = timestamp do trecho em andamento */
   const baseRef = useRef(session.studiedSeconds);
   const startedAtRef = useRef<number | null>(null);
-  const [elapsed, setElapsed] = useState(session.studiedSeconds);
-  const [running, setRunning] = useState(false);
+  /* elapsed e running vivem no MESMO estado: pausar/retomar e o tick nunca
+     produzem dois commits concorrentes no meio de uma troca de layout. */
+  const [clock, setClock] = useState<{ elapsed: number; running: boolean }>({
+    elapsed: session.studiedSeconds,
+    running: false,
+  });
+  const { elapsed, running } = clock;
   const [ready, setReady] = useState(false);
   const reached = elapsed >= targetSeconds;
   const alerted = useRef(false);
@@ -166,8 +171,7 @@ export function TimerDialog({
       startedAtRef.current = Date.now();
     }
     startRef.current = session.studiedSeconds;
-    setRunning(startedAtRef.current !== null);
-    setElapsed(compute());
+    setClock({ elapsed: compute(), running: startedAtRef.current !== null });
     persist();
     setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -176,7 +180,11 @@ export function TimerDialog({
   /* tick de UI baseado em tempo real (imune a throttling de aba em background) */
   useEffect(() => {
     if (!ready || !running) return;
-    const sync = () => setElapsed(compute());
+    const sync = () =>
+      setClock((prev) => {
+        const next = compute();
+        return prev.elapsed === next ? prev : { ...prev, elapsed: next };
+      });
     sync();
     const id = setInterval(sync, 500);
     const onVisible = () => {
@@ -196,26 +204,32 @@ export function TimerDialog({
       alerted.current = true;
       baseRef.current = targetSeconds;
       startedAtRef.current = null;
-      setRunning(false);
+      setClock({ elapsed: targetSeconds, running: false });
       persist();
       playAlert();
     }
   }, [reached, targetSeconds, persist]);
 
+  /* mantém o callback em ref: mudanças de identidade do onTick não reagendam
+     efeitos, e só notificamos quando o segundo inteiro realmente muda. */
+  const onTickRef = useRef(onTick);
+  onTickRef.current = onTick;
+  const lastNotified = useRef<number | null>(null);
   useEffect(() => {
-    onTick?.(elapsed);
-  }, [elapsed, onTick]);
+    const seconds = Math.floor(elapsed);
+    if (lastNotified.current === seconds) return;
+    lastNotified.current = seconds;
+    onTickRef.current?.(seconds);
+  }, [elapsed]);
 
   const toggle = () => {
     if (startedAtRef.current !== null) {
       baseRef.current = compute();
       startedAtRef.current = null;
-      setRunning(false);
     } else {
       startedAtRef.current = Date.now();
-      setRunning(true);
     }
-    setElapsed(compute());
+    setClock({ elapsed: compute(), running: startedAtRef.current !== null });
     persist();
   };
 
@@ -307,9 +321,11 @@ export function TimerDialog({
         </div>
 
         {tab === "map" ? (
-          <MindMapPanel subject={subject} />
+          <div key="panel-map">
+            <MindMapPanel subject={subject} />
+          </div>
         ) : (
-          <>
+          <div key="panel-timer">
             <p
               aria-live="polite"
               className={cn(
@@ -332,7 +348,7 @@ export function TimerDialog({
             </div>
 
             {reached ? (
-              <>
+              <div key="done">
                 <div
                   role="alert"
                   className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-mint/25 px-4 py-3 text-center text-sm font-semibold text-mint-foreground"
@@ -399,9 +415,9 @@ export function TimerDialog({
                     <Check /> Concluir
                   </Button>
                 )}
-              </>
+              </div>
             ) : (
-              <div className="mt-6 flex gap-2">
+              <div key="controls" className="mt-6 flex gap-2">
                 <Button
                   variant={running ? "outline" : "mint"}
                   size="pill"
@@ -423,7 +439,7 @@ export function TimerDialog({
                 </Button>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
