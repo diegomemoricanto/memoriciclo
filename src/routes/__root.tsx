@@ -162,6 +162,12 @@ function RootComponent() {
             >
               Histórico
             </Link>
+            <Link
+              to="/concursos"
+              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
+            >
+              Meus Concursos
+            </Link>
             <div className="ml-auto">
               <UserMenu />
             </div>
