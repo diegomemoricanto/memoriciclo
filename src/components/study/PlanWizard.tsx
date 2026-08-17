@@ -161,6 +161,12 @@ export function PlanWizard({
                           onChange={(v) => patchSubject(s.id, { maxSessionMinutes: v })}
                         />
                       </div>
+                      {subjectSessionDurations(s).tooShort && (
+                        <p className="mt-2 text-[11px] text-destructive">
+                          Intervalo curto demais para os incrementos padrão (30 em 30 min). As
+                          sessões usarão {subjectSessionDurations(s).options[0]}min.
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
