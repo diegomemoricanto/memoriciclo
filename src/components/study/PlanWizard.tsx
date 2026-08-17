@@ -16,6 +16,7 @@ import {
   WEEK_DAYS,
   colorForIndex,
   subjectWeight,
+  subjectSessionDurations,
   uid,
   DEFAULT_MIN_SESSION,
   DEFAULT_MAX_SESSION,
