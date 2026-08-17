@@ -50,7 +50,9 @@ export const SUBJECT_PALETTE = [
 
 export const WEEK_DAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
-export const SESSION_OPTIONS = [15, 30, 45, 60, 75, 90, 105, 120];
+/** Incrementos "fechados" permitidos para a duração de uma sessão (30 em 30 min). */
+export const SESSION_INCREMENT = 30;
+export const SESSION_OPTIONS = [30, 60, 90, 120, 150, 180];
 
 export const DEFAULT_MIN_SESSION = 30;
 export const DEFAULT_MAX_SESSION = 90;
@@ -59,6 +61,19 @@ export function subjectRange(subject: Subject) {
   const a = subject.minSessionMinutes ?? DEFAULT_MIN_SESSION;
   const b = subject.maxSessionMinutes ?? DEFAULT_MAX_SESSION;
   return { min: Math.max(5, Math.min(a, b)), max: Math.max(5, Math.max(a, b)) };
+}
+
+/**
+ * Durações válidas (múltiplos de 30min) dentro do intervalo [mín, máx] da disciplina.
+ * Se nenhum incremento padrão couber, usa o maior múltiplo de 30 que não estoure o
+ * máximo; se nem isso for possível, usa o próprio máximo (`tooShort = true`).
+ */
+export function subjectSessionDurations(subject: Subject) {
+  const { min, max } = subjectRange(subject);
+  const options = SESSION_OPTIONS.filter((m) => m >= min && m <= max);
+  if (options.length) return { options, tooShort: false };
+  const fallback = Math.floor(max / SESSION_INCREMENT) * SESSION_INCREMENT;
+  return { options: [fallback > 0 ? fallback : max], tooShort: true };
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -98,23 +113,23 @@ export function generateSessions(subjects: Subject[], plan: Plan): Session[] {
   //    em sessões de duração ALEATÓRIA dentro do intervalo mín/máx da própria disciplina.
   const queues = subjects.map((subject) => {
     const weight = subjectWeight(subject, subjects);
-    const { min, max } = subjectRange(subject);
+    const { options } = subjectSessionDurations(subject);
+    const smallest = Math.min(...options);
     let target = Math.round((weight / 100) * totalMinutes);
     const durations: number[] = [];
 
-    while (target > 0) {
-      if (target <= max) {
-        // Sobra final cabe dentro do máximo: cria última sessão exatamente
-        // com o tempo restante (pode ficar abaixo do mínimo, mas nunca acima do máximo).
-        durations.push(target);
-        target = 0;
-      } else {
-        const draw = Math.round(min + Math.random() * (max - min));
-        durations.push(draw);
-        target -= draw;
-      }
+    while (target >= smallest) {
+      // Só escolhe entre incrementos fechados que ainda cabem no tempo restante.
+      const fits = options.filter((m) => m <= target);
+      const pool = fits.length ? fits : [smallest];
+      const draw = pool[Math.floor(Math.random() * pool.length)] ?? smallest;
+      durations.push(draw);
+      target -= draw;
     }
-    if (!durations.length) durations.push(min);
+    // Sobra menor que o menor incremento: arredonda para uma sessão fechada extra
+    // apenas se estiver mais perto de completar do que de descartar.
+    if (target >= smallest / 2) durations.push(smallest);
+    if (!durations.length) durations.push(smallest);
 
     return { subject, weight, durations, index: 0, counter: 0 };
   });
@@ -129,7 +144,7 @@ export function generateSessions(subjects: Subject[], plan: Plan): Session[] {
     active.forEach((q) => (q.counter += q.weight));
     const pick = active.reduce((a, b) => (b.counter > a.counter ? b : a));
     pick.counter -= totalWeight;
-    const minutes = pick.durations[pick.index] ?? subjectRange(pick.subject).min;
+    const minutes = pick.durations[pick.index] ?? subjectRange(pick.subject).max;
     pick.index += 1;
     out.push({
       id: uid(),
