@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssinaturaRouteImport } from './routes/assinatura'
 import { Route as ConcursosRouteImport } from './routes/concursos'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as PainelRouteImport } from './routes/painel'
@@ -23,6 +24,11 @@ import { Route as MapasMentaisSubjectIdTopicIdRouteImport } from './routes/mapas
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssinaturaRoute = AssinaturaRouteImport.update({
+  id: '/assinatura',
+  path: '/assinatura',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConcursosRoute = ConcursosRouteImport.update({
@@ -75,6 +81,7 @@ const MapasMentaisSubjectIdTopicIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assinatura': typeof AssinaturaRoute
   '/concursos': typeof ConcursosRoute
   '/historico': typeof HistoricoRoute
   '/painel': typeof PainelRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assinatura': typeof AssinaturaRoute
   '/concursos': typeof ConcursosRoute
   '/historico': typeof HistoricoRoute
   '/painel': typeof PainelRoute
@@ -100,6 +108,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assinatura': typeof AssinaturaRoute
   '/concursos': typeof ConcursosRoute
   '/historico': typeof HistoricoRoute
   '/painel': typeof PainelRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/assinatura'
     | '/concursos'
     | '/historico'
     | '/painel'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/assinatura'
     | '/concursos'
     | '/historico'
     | '/painel'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/assinatura'
     | '/concursos'
     | '/historico'
     | '/painel'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssinaturaRoute: typeof AssinaturaRoute
   ConcursosRoute: typeof ConcursosRoute
   HistoricoRoute: typeof HistoricoRoute
   PainelRoute: typeof PainelRoute
@@ -169,6 +182,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assinatura': {
+      id: '/assinatura'
+      path: '/assinatura'
+      fullPath: '/assinatura'
+      preLoaderRoute: typeof AssinaturaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/concursos': {
@@ -239,6 +259,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssinaturaRoute: AssinaturaRoute,
   ConcursosRoute: ConcursosRoute,
   HistoricoRoute: HistoricoRoute,
   PainelRoute: PainelRoute,
