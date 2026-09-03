@@ -171,12 +171,12 @@ function RootComponent() {
             >
               Meus Concursos
             </Link>
-            <span
-              aria-disabled="true"
-              className="cursor-default rounded-full px-4 py-2 text-sm font-medium text-muted-foreground"
+            <Link
+              to="/mapas-mentais"
+              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
             >
               Mapas Mentais
-            </span>
+            </Link>
             <div className="ml-auto">
               <UserMenu />
             </div>
