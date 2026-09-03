@@ -10,9 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssinaturaRouteImport } from './routes/assinatura'
 import { Route as ConcursosRouteImport } from './routes/concursos'
 import { Route as HistoricoRouteImport } from './routes/historico'
-import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as PainelRouteImport } from './routes/painel'
 import { Route as PlanejamentoRouteImport } from './routes/planejamento'
 import { Route as PlanejamentosRouteImport } from './routes/planejamentos'
 import { Route as MapasMentaisIndexRouteImport } from './routes/mapas-mentais.index'
@@ -22,6 +23,11 @@ import { Route as MapasMentaisSubjectIdTopicIdRouteImport } from './routes/mapas
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssinaturaRoute = AssinaturaRouteImport.update({
+  id: '/assinatura',
+  path: '/assinatura',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConcursosRoute = ConcursosRouteImport.update({
@@ -34,9 +40,9 @@ const HistoricoRoute = HistoricoRouteImport.update({
   path: '/historico',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PerfilRoute = PerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
+const PainelRoute = PainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanejamentoRoute = PlanejamentoRouteImport.update({
@@ -69,9 +75,10 @@ const MapasMentaisSubjectIdTopicIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assinatura': typeof AssinaturaRoute
   '/concursos': typeof ConcursosRoute
   '/historico': typeof HistoricoRoute
-  '/perfil': typeof PerfilRoute
+  '/painel': typeof PainelRoute
   '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
   '/mapas-mentais/': typeof MapasMentaisIndexRoute
@@ -80,9 +87,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assinatura': typeof AssinaturaRoute
   '/concursos': typeof ConcursosRoute
   '/historico': typeof HistoricoRoute
-  '/perfil': typeof PerfilRoute
+  '/painel': typeof PainelRoute
   '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
   '/mapas-mentais': typeof MapasMentaisIndexRoute
@@ -92,9 +100,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assinatura': typeof AssinaturaRoute
   '/concursos': typeof ConcursosRoute
   '/historico': typeof HistoricoRoute
-  '/perfil': typeof PerfilRoute
+  '/painel': typeof PainelRoute
   '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
   '/mapas-mentais/': typeof MapasMentaisIndexRoute
@@ -105,9 +114,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/assinatura'
     | '/concursos'
     | '/historico'
-    | '/perfil'
+    | '/painel'
     | '/planejamento'
     | '/planejamentos'
     | '/mapas-mentais/'
@@ -116,9 +126,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/assinatura'
     | '/concursos'
     | '/historico'
-    | '/perfil'
+    | '/painel'
     | '/planejamento'
     | '/planejamentos'
     | '/mapas-mentais'
@@ -127,9 +138,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/assinatura'
     | '/concursos'
     | '/historico'
-    | '/perfil'
+    | '/painel'
     | '/planejamento'
     | '/planejamentos'
     | '/mapas-mentais/'
@@ -139,9 +151,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssinaturaRoute: typeof AssinaturaRoute
   ConcursosRoute: typeof ConcursosRoute
   HistoricoRoute: typeof HistoricoRoute
-  PerfilRoute: typeof PerfilRoute
+  PainelRoute: typeof PainelRoute
   PlanejamentoRoute: typeof PlanejamentoRoute
   PlanejamentosRoute: typeof PlanejamentosRoute
   MapasMentaisIndexRoute: typeof MapasMentaisIndexRoute
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/assinatura': {
+      id: '/assinatura'
+      path: '/assinatura'
+      fullPath: '/assinatura'
+      preLoaderRoute: typeof AssinaturaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/concursos': {
       id: '/concursos'
       path: '/concursos'
@@ -172,11 +192,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoricoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/perfil': {
-      id: '/perfil'
-      path: '/perfil'
-      fullPath: '/perfil'
-      preLoaderRoute: typeof PerfilRouteImport
+    '/painel': {
+      id: '/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof PainelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/planejamento': {
@@ -219,9 +239,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssinaturaRoute: AssinaturaRoute,
   ConcursosRoute: ConcursosRoute,
   HistoricoRoute: HistoricoRoute,
-  PerfilRoute: PerfilRoute,
+  PainelRoute: PainelRoute,
   PlanejamentoRoute: PlanejamentoRoute,
   PlanejamentosRoute: PlanejamentosRoute,
   MapasMentaisIndexRoute: MapasMentaisIndexRoute,
