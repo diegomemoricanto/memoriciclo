@@ -118,7 +118,7 @@ export function TimerDialog({
   session: Session;
   subject: Subject | undefined;
   /** salva progresso parcial (segundos totais, delta desta abertura) */
-  onClose: (totalSeconds: number, deltaSeconds: number) => void;
+  onClose: (totalSeconds: number, deltaSeconds: number, questions?: QuestionsEntry) => void;
   onFinish: (totalSeconds: number, deltaSeconds: number, questions?: QuestionsEntry) => void;
   /** notifica o tempo decorrido para atualização visual em tempo real */
   onTick?: (totalSeconds: number) => void;
@@ -139,12 +139,14 @@ export function TimerDialog({
   const reached = elapsed >= targetSeconds;
   const alerted = useRef(false);
   const [tab, setTab] = useState<"timer" | "map">("timer");
-  const [askQuestions, setAskQuestions] = useState(false);
-  const [topic, setTopic] = useState("");
+  /** null = cronômetro; "finish" = concluída; "partial" = salvar e sair */
+  const [wrapMode, setWrapMode] = useState<null | "finish" | "partial">(null);
+  const [topic, setTopic] = useState(subject?.name ?? "");
   const [correct, setCorrect] = useState("");
   const [wrong, setWrong] = useState("");
   const [total, setTotal] = useState("");
   const remaining = Math.max(0, targetSeconds - elapsed);
+
 
   const persist = useCallback(() => {
     writePersisted(session.id, {
