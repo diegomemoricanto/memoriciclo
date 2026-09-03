@@ -379,7 +379,9 @@ function DashboardInner() {
           <TimerDialog
             session={activeSession}
             subject={subjectById[activeSession.subjectId]}
-            onClose={(total, delta) => savePartial(activeSession, total, delta)}
+            onClose={(total, delta, questions) =>
+              savePartial(activeSession, total, delta, questions)
+            }
             onFinish={(total, delta, questions) =>
               finishSession(activeSession, total, delta, questions)
             }
