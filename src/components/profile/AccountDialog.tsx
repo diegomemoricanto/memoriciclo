@@ -1,14 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Bell,
-  Camera,
-  Layers,
-  LogOut,
-  Settings2,
-  Shield,
-  Trophy,
-  UserCog,
-} from "lucide-react";
+import { Bell, Camera, Layers, LogOut, Settings2, Shield, Trophy, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -28,7 +19,33 @@ const SECTIONS: { id: SectionId; label: string; icon: typeof UserCog; badge?: st
 ];
 
 const UFS = [
-  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
 ];
 
 type FormState = {
