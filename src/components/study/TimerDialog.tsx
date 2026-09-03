@@ -240,11 +240,19 @@ export function TimerDialog({
     startedAtRef.current = null;
   };
 
-  const handleClose = () => {
+  const handleClose = (questions?: QuestionsEntry) => {
     stop();
     const total = baseRef.current;
     persist();
-    onClose(total, Math.max(0, total - startRef.current));
+    onClose(total, Math.max(0, total - startRef.current), questions);
+  };
+
+  /** pausa o cronômetro e abre o formulário de encerramento parcial */
+  const openPartialWrapUp = () => {
+    stop();
+    setClock({ elapsed: compute(), running: false });
+    persist();
+    setWrapMode("partial");
   };
 
   const handleFinish = (questions?: QuestionsEntry) => {
@@ -267,8 +275,11 @@ export function TimerDialog({
   const totalValue = total.trim() === "" ? autoTotal : num(total);
 
   const submitQuestions = () => {
-    handleFinish({ total: totalValue, correct: num(correct), wrong: num(wrong), topic });
+    const questions = { total: totalValue, correct: num(correct), wrong: num(wrong), topic };
+    if (wrapMode === "partial") handleClose(questions);
+    else handleFinish(questions);
   };
+
 
   const progress = Math.min(100, (elapsed / targetSeconds) * 100);
 
