@@ -211,10 +211,18 @@ export function Metrics() {
         <StatCard
           icon={TrendingUp}
           label={`Média por ${periodLabel.toLowerCase()}`}
-          value={formatSeconds(
-            series.reduce((a, s) => a + s.seconds, 0) / Math.max(1, series.length),
-          )}
+          value={formatSeconds(Math.round(periodStats.averages[period]))}
+          hint={`${formatSeconds(periodStats.totalSeconds)} ÷ ${periodStats.units[period]} ${
+            period === "day"
+              ? "dia(s)"
+              : period === "week"
+                ? "semana(s)"
+                : period === "month"
+                  ? "mês(es)"
+                  : "ano(s)"
+          }`}
         />
+
         <StatCard icon={Target} label="Questões respondidas" value={String(questions.answered)} />
       </div>
 
