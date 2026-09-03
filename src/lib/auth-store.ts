@@ -56,6 +56,14 @@ type SessionUser = {
   user_metadata?: Record<string, unknown>;
 };
 
+/** gera url exibível: http(s) direto, ou url assinada do bucket privado */
+async function resolveAvatar(profile: Profile): Promise<Profile> {
+  const raw = profile.avatar_url;
+  if (!raw || /^https?:\/\//.test(raw)) return { ...profile, avatar_path: null };
+  const { data } = await supabase.storage.from("avatars").createSignedUrl(raw, 60 * 60);
+  return { ...profile, avatar_path: raw, avatar_url: data?.signedUrl ?? null };
+}
+
 async function ensureProfile(user: SessionUser) {
   const meta = user.user_metadata ?? {};
   const fullName =
@@ -67,6 +75,17 @@ async function ensureProfile(user: SessionUser) {
     (typeof meta["picture"] === "string" && meta["picture"]) ||
     null;
 
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select(PROFILE_COLUMNS)
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    set({ profile: await resolveAvatar(existing as Profile) });
+    return;
+  }
+
   const payload = {
     id: user.id,
     email: user.email ?? null,
@@ -76,10 +95,35 @@ async function ensureProfile(user: SessionUser) {
   const { data, error } = await supabase
     .from("profiles")
     .upsert(payload, { onConflict: "id" })
-    .select("id, email, full_name, avatar_url")
+    .select(PROFILE_COLUMNS)
     .maybeSingle();
-  if (!error && data) set({ profile: data as Profile });
+  if (!error && data) set({ profile: await resolveAvatar(data as Profile) });
   else set({ profile: payload });
+}
+
+/** salva alterações do perfil e atualiza o estado global */
+export async function updateProfile(patch: Partial<Omit<Profile, "id" | "avatar_path">>) {
+  const uid = state.userId;
+  if (!uid) return;
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(patch)
+    .eq("id", uid)
+    .select(PROFILE_COLUMNS)
+    .maybeSingle();
+  if (error) throw error;
+  if (data) set({ profile: await resolveAvatar(data as Profile) });
+}
+
+/** envia a foto de perfil para o storage privado e vincula ao perfil */
+export async function uploadAvatar(file: File) {
+  const uid = state.userId;
+  if (!uid) return;
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const path = `${uid}/avatar-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+  if (error) throw error;
+  await updateProfile({ avatar_url: path });
 }
 
 function applySession(user: SessionUser | null) {
