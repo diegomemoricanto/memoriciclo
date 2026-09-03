@@ -309,7 +309,12 @@ export function TimerDialog({
               {subject?.name ?? "Disciplina"}
             </h2>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Fechar cronômetro" onClick={handleClose}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Fechar cronômetro"
+            onClick={() => handleClose()}
+          >
             <X />
           </Button>
         </div>
