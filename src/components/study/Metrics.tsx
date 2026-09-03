@@ -5,7 +5,8 @@ import { useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
 import { formatSeconds, subjectWeight } from "@/lib/study-types";
 import { topicBreakdown } from "@/lib/topic-stats";
-import { currentStreak, periodAverages, studyDayKeys } from "@/lib/study-averages";
+import { currentStreak, periodAverages } from "@/lib/study-averages";
+import { useActivityDays } from "@/lib/profile-widgets";
 
 type Period = "day" | "week" | "month" | "year";
 
@@ -89,13 +90,14 @@ function accuracyColor(pct: number) {
 export function Metrics() {
   const [period, setPeriod] = useState<Period>("week");
   const { studyLogs, subjects, savedPlans } = useStudyState();
+  const { days: activityDays } = useActivityDays();
   const known = useMemo(() => allSubjects(subjects, savedPlans), [subjects, savedPlans]);
 
   const totalSeconds = studyLogs.reduce((a, l) => a + l.durationSeconds, 0);
   const totalCycles = savedPlans.reduce((a, p) => a + p.cycleStats.completedCycles, 0);
 
-  /** streak real: independente do filtro de período dos gráficos */
-  const streak = useMemo(() => currentStreak(studyDayKeys(studyLogs)), [studyLogs]);
+  /** streak de acesso ao app: independente do filtro de período dos gráficos */
+  const streak = useMemo(() => currentStreak(activityDays), [activityDays]);
 
   /** médias por período, cada divisor calculado de forma independente */
   const periodStats = useMemo(() => periodAverages(studyLogs), [studyLogs]);

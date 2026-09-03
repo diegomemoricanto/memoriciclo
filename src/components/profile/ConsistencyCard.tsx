@@ -2,8 +2,7 @@ import { useMemo, useState } from "react";
 import { CalendarCheck, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toDayKey, useActivityDays } from "@/lib/profile-widgets";
-import { useStudyState } from "@/lib/study-store";
-import { currentStreak, studyDayKeys } from "@/lib/study-averages";
+import { currentStreak } from "@/lib/study-averages";
 
 const WINDOW = 30;
 
@@ -12,7 +11,6 @@ const shortDate = (d: Date) =>
 
 export function ConsistencyCard() {
   const { days, ready } = useActivityDays();
-  const { studyLogs } = useStudyState();
   const [offset, setOffset] = useState(0);
   const set = useMemo(() => new Set(days), [days]);
 
@@ -27,8 +25,8 @@ export function ConsistencyCard() {
     });
   }, [offset]);
 
-  /** dias seguidos com estudo registrado — valor único, sem depender de filtros */
-  const streak = useMemo(() => currentStreak(studyDayKeys(studyLogs)), [studyLogs]);
+  /** dias seguidos de acesso ao app — valor único, sem depender de filtros */
+  const streak = useMemo(() => currentStreak(set), [set]);
 
   const daysAway = useMemo(() => {
     if (days.length === 0) return null;
