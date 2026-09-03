@@ -107,7 +107,6 @@ function DashboardInner() {
     setLiveSeconds(null);
   };
 
-
   const finishSession = (
     session: Session,
     totalSeconds: number,

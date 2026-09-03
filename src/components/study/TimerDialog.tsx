@@ -147,7 +147,6 @@ export function TimerDialog({
   const [total, setTotal] = useState("");
   const remaining = Math.max(0, targetSeconds - elapsed);
 
-
   const persist = useCallback(() => {
     writePersisted(session.id, {
       baseElapsed: baseRef.current,
@@ -279,7 +278,6 @@ export function TimerDialog({
     if (wrapMode === "partial") handleClose(questions);
     else handleFinish(questions);
   };
-
 
   const progress = Math.min(100, (elapsed / targetSeconds) * 100);
 
@@ -475,7 +473,6 @@ export function TimerDialog({
                 </Button>
               </div>
             )}
-
           </div>
         )}
       </div>
