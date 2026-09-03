@@ -7,7 +7,19 @@ export type Profile = {
   email: string | null;
   full_name: string | null;
   avatar_url: string | null;
+  /** caminho no storage privado, quando a foto foi enviada pelo usuário */
+  avatar_path?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  nickname?: string | null;
+  birthday?: string | null;
+  gender?: string | null;
+  city?: string | null;
+  uf?: string | null;
 };
+
+const PROFILE_COLUMNS =
+  "id, email, full_name, avatar_url, first_name, last_name, nickname, birthday, gender, city, uf";
 
 export type AuthState = {
   userId: string | null;
