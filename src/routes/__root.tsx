@@ -7,12 +7,15 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Camera } from "lucide-react";
+import { toast } from "sonner";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthGateProvider, useRequireAuth } from "@/components/auth/auth-gate";
-import { signOut, useAuth } from "@/lib/auth-store";
+import { signOut, uploadAvatar, useAuth } from "@/lib/auth-store";
+import { AccountDialog } from "@/components/profile/AccountDialog";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 
