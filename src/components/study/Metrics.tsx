@@ -100,7 +100,6 @@ export function Metrics() {
   /** médias por período, cada divisor calculado de forma independente */
   const periodStats = useMemo(() => periodAverages(studyLogs), [studyLogs]);
 
-
   /** mesma janela de agrupamento para os dois gráficos */
   const series = useMemo(
     () =>
@@ -430,4 +429,3 @@ function StatCard({
     </div>
   );
 }
-

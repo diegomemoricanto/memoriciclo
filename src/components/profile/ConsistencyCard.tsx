@@ -88,9 +88,7 @@ export function ConsistencyCard() {
               key={key}
               title={`${shortDate(d)} — ${active ? "com atividade" : "sem atividade"}`}
               className={`flex size-7 items-center justify-center rounded-full text-[10px] font-semibold ${
-                active
-                  ? "bg-mint text-mint-foreground"
-                  : "bg-destructive/10 text-destructive"
+                active ? "bg-mint text-mint-foreground" : "bg-destructive/10 text-destructive"
               } ${highlight ? "ring-2 ring-mint-foreground ring-offset-2 ring-offset-card" : ""}`}
             >
               {active ? d.getDate() : <X className="size-3.5" />}

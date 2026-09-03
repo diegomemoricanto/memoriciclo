@@ -68,10 +68,7 @@ export function periodAverages(logs: LogLike[]): PeriodAverages {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const dayCount = Math.max(
-    1,
-    Math.floor((today.getTime() - firstDay.getTime()) / 86400000) + 1,
-  );
+  const dayCount = Math.max(1, Math.floor((today.getTime() - firstDay.getTime()) / 86400000) + 1);
   const weekCount = Math.max(1, Math.ceil(dayCount / 7));
   const monthCount = Math.max(
     1,
