@@ -93,17 +93,12 @@ export function Metrics() {
   const totalSeconds = studyLogs.reduce((a, l) => a + l.durationSeconds, 0);
   const totalCycles = savedPlans.reduce((a, p) => a + p.cycleStats.completedCycles, 0);
 
-  const streak = useMemo(() => {
-    const days = new Set(studyLogs.map((l) => l.date.slice(0, 10)));
-    let count = 0;
-    const cursor = new Date();
-    if (!days.has(dayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
-    while (days.has(dayKey(cursor))) {
-      count += 1;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-    return count;
-  }, [studyLogs]);
+  /** streak real: independente do filtro de período dos gráficos */
+  const streak = useMemo(() => currentStreak(studyDayKeys(studyLogs)), [studyLogs]);
+
+  /** médias por período, cada divisor calculado de forma independente */
+  const periodStats = useMemo(() => periodAverages(studyLogs), [studyLogs]);
+
 
   /** mesma janela de agrupamento para os dois gráficos */
   const series = useMemo(
