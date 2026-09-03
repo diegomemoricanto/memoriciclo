@@ -5,6 +5,7 @@ import { useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
 import { formatSeconds, subjectWeight } from "@/lib/study-types";
 import { topicBreakdown } from "@/lib/topic-stats";
+import { currentStreak, periodAverages, studyDayKeys } from "@/lib/study-averages";
 
 type Period = "day" | "week" | "month" | "year";
 
@@ -93,17 +94,11 @@ export function Metrics() {
   const totalSeconds = studyLogs.reduce((a, l) => a + l.durationSeconds, 0);
   const totalCycles = savedPlans.reduce((a, p) => a + p.cycleStats.completedCycles, 0);
 
-  const streak = useMemo(() => {
-    const days = new Set(studyLogs.map((l) => l.date.slice(0, 10)));
-    let count = 0;
-    const cursor = new Date();
-    if (!days.has(dayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
-    while (days.has(dayKey(cursor))) {
-      count += 1;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-    return count;
-  }, [studyLogs]);
+  /** streak real: independente do filtro de período dos gráficos */
+  const streak = useMemo(() => currentStreak(studyDayKeys(studyLogs)), [studyLogs]);
+
+  /** médias por período, cada divisor calculado de forma independente */
+  const periodStats = useMemo(() => periodAverages(studyLogs), [studyLogs]);
 
   /** mesma janela de agrupamento para os dois gráficos */
   const series = useMemo(
@@ -215,10 +210,18 @@ export function Metrics() {
         <StatCard
           icon={TrendingUp}
           label={`Média por ${periodLabel.toLowerCase()}`}
-          value={formatSeconds(
-            series.reduce((a, s) => a + s.seconds, 0) / Math.max(1, series.length),
-          )}
+          value={formatSeconds(Math.round(periodStats.averages[period]))}
+          hint={`${formatSeconds(periodStats.totalSeconds)} ÷ ${periodStats.units[period]} ${
+            period === "day"
+              ? "dia(s)"
+              : period === "week"
+                ? "semana(s)"
+                : period === "month"
+                  ? "mês(es)"
+                  : "ano(s)"
+          }`}
         />
+
         <StatCard icon={Target} label="Questões respondidas" value={String(questions.answered)} />
       </div>
 
@@ -408,10 +411,12 @@ function StatCard({
   icon: Icon,
   label,
   value,
+  hint,
 }: {
   icon: typeof Timer;
   label: string;
   value: string;
+  hint?: string;
 }) {
   return (
     <div className="rounded-2xl bg-card p-5 shadow-soft">
@@ -420,6 +425,7 @@ function StatCard({
         {label}
       </p>
       <p className="mt-1 text-xl font-semibold">{value}</p>
+      {hint && <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }
