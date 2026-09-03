@@ -412,10 +412,12 @@ function StatCard({
   icon: Icon,
   label,
   value,
+  hint,
 }: {
   icon: typeof Timer;
   label: string;
   value: string;
+  hint?: string;
 }) {
   return (
     <div className="rounded-2xl bg-card p-5 shadow-soft">
@@ -424,6 +426,8 @@ function StatCard({
         {label}
       </p>
       <p className="mt-1 text-xl font-semibold">{value}</p>
+      {hint && <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }
+
