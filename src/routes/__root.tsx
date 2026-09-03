@@ -191,6 +191,8 @@ function UserMenu() {
   const { userId, profile, email } = useAuth();
   const requireAuth = useRequireAuth();
   const [open, setOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   if (!userId) {
     return (
@@ -200,7 +202,22 @@ function UserMenu() {
     );
   }
 
-  const name = profile?.full_name ?? profile?.email ?? email ?? "Conta";
+  const displayName =
+    profile?.nickname ?? profile?.first_name ?? profile?.full_name ?? email ?? "Conta";
+  const initial = displayName.slice(0, 1).toUpperCase();
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      await uploadAvatar(file);
+      toast.success("Foto de perfil atualizada.");
+    } catch {
+      toast.error("Não foi possível enviar a foto.");
+    }
+  };
+
+  const itemClass =
+    "block w-full rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted";
 
   return (
     <div className="relative">
@@ -208,14 +225,23 @@ function UserMenu() {
         type="button"
         aria-label="Menu do usuário"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-mint text-sm font-semibold text-mint-foreground"
+        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-mint bg-mint text-sm font-semibold text-mint-foreground"
       >
         {profile?.avatar_url ? (
-          <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" />
+          <img src={profile.avatar_url} alt={displayName} className="h-full w-full object-cover" />
         ) : (
-          name.slice(0, 1).toUpperCase()
+          initial
         )}
       </button>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => void handleFile(e.target.files?.[0])}
+      />
+
       {open && (
         <>
           <button
@@ -224,14 +250,44 @@ function UserMenu() {
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-2xl border bg-card p-1 shadow-soft">
-            <p className="truncate px-3 py-2 text-xs text-muted-foreground">{name}</p>
-            <Link
-              to="/perfil"
-              onClick={() => setOpen(false)}
-              className="block rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+          <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border bg-card p-2 shadow-soft">
+            <div className="flex items-center gap-3 px-1 pb-2">
+              <button
+                type="button"
+                aria-label="Trocar foto de perfil"
+                onClick={() => fileRef.current?.click()}
+                className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-mint text-sm font-semibold text-mint-foreground"
+              >
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initial
+                )}
+                <span className="absolute inset-x-0 bottom-0 flex justify-center bg-foreground/50 py-0.5">
+                  <Camera className="h-2.5 w-2.5 text-background" />
+                </span>
+              </button>
+              <p className="truncate text-sm font-semibold">Olá, {displayName}!</p>
+            </div>
+            <button
+              type="button"
+              className={itemClass}
+              onClick={() => {
+                setOpen(false);
+                setAccountOpen(true);
+              }}
             >
-              Perfil
+              Minha conta
+            </button>
+            <Link to="/painel" onClick={() => setOpen(false)} className={itemClass}>
+              Meu painel
+            </Link>
+            <Link to="/assinatura" onClick={() => setOpen(false)} className={itemClass}>
+              Assinatura
             </Link>
             <button
               type="button"
@@ -239,13 +295,15 @@ function UserMenu() {
                 setOpen(false);
                 await signOut();
               }}
-              className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted"
+              className={itemClass}
             >
               Sair
             </button>
           </div>
         </>
       )}
+
+      <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
     </div>
   );
 }
