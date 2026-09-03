@@ -5,6 +5,7 @@ import { useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
 import { formatSeconds, subjectWeight } from "@/lib/study-types";
 import { topicBreakdown } from "@/lib/topic-stats";
+import { currentStreak, periodAverages, studyDayKeys } from "@/lib/study-averages";
 
 type Period = "day" | "week" | "month" | "year";
 
