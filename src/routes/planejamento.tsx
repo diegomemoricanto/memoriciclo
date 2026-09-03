@@ -95,8 +95,13 @@ function DashboardInner() {
     setActiveId(id);
   };
 
-  const savePartial = (session: Session, totalSeconds: number, delta: number) => {
-    if (delta > 0) addStudyLog(session.subjectId, delta);
+  const savePartial = (
+    session: Session,
+    totalSeconds: number,
+    delta: number,
+    questions?: QuestionsEntry,
+  ) => {
+    if (delta > 0) addStudyLog(session.subjectId, delta, questions);
     updateSession(session.id, { studiedSeconds: totalSeconds });
     setActiveId(null);
     setLiveSeconds(null);
@@ -373,7 +378,9 @@ function DashboardInner() {
           <TimerDialog
             session={activeSession}
             subject={subjectById[activeSession.subjectId]}
-            onClose={(total, delta) => savePartial(activeSession, total, delta)}
+            onClose={(total, delta, questions) =>
+              savePartial(activeSession, total, delta, questions)
+            }
             onFinish={(total, delta, questions) =>
               finishSession(activeSession, total, delta, questions)
             }

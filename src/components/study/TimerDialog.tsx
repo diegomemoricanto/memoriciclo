@@ -118,7 +118,7 @@ export function TimerDialog({
   session: Session;
   subject: Subject | undefined;
   /** salva progresso parcial (segundos totais, delta desta abertura) */
-  onClose: (totalSeconds: number, deltaSeconds: number) => void;
+  onClose: (totalSeconds: number, deltaSeconds: number, questions?: QuestionsEntry) => void;
   onFinish: (totalSeconds: number, deltaSeconds: number, questions?: QuestionsEntry) => void;
   /** notifica o tempo decorrido para atualização visual em tempo real */
   onTick?: (totalSeconds: number) => void;
@@ -139,8 +139,9 @@ export function TimerDialog({
   const reached = elapsed >= targetSeconds;
   const alerted = useRef(false);
   const [tab, setTab] = useState<"timer" | "map">("timer");
-  const [askQuestions, setAskQuestions] = useState(false);
-  const [topic, setTopic] = useState("");
+  /** null = cronômetro; "finish" = concluída; "partial" = salvar e sair */
+  const [wrapMode, setWrapMode] = useState<null | "finish" | "partial">(null);
+  const [topic, setTopic] = useState(subject?.name ?? "");
   const [correct, setCorrect] = useState("");
   const [wrong, setWrong] = useState("");
   const [total, setTotal] = useState("");
@@ -238,11 +239,19 @@ export function TimerDialog({
     startedAtRef.current = null;
   };
 
-  const handleClose = () => {
+  const handleClose = (questions?: QuestionsEntry) => {
     stop();
     const total = baseRef.current;
     persist();
-    onClose(total, Math.max(0, total - startRef.current));
+    onClose(total, Math.max(0, total - startRef.current), questions);
+  };
+
+  /** pausa o cronômetro e abre o formulário de encerramento parcial */
+  const openPartialWrapUp = () => {
+    stop();
+    setClock({ elapsed: compute(), running: false });
+    persist();
+    setWrapMode("partial");
   };
 
   const handleFinish = (questions?: QuestionsEntry) => {
@@ -265,7 +274,9 @@ export function TimerDialog({
   const totalValue = total.trim() === "" ? autoTotal : num(total);
 
   const submitQuestions = () => {
-    handleFinish({ total: totalValue, correct: num(correct), wrong: num(wrong), topic });
+    const questions = { total: totalValue, correct: num(correct), wrong: num(wrong), topic };
+    if (wrapMode === "partial") handleClose(questions);
+    else handleFinish(questions);
   };
 
   const progress = Math.min(100, (elapsed / targetSeconds) * 100);
@@ -296,7 +307,12 @@ export function TimerDialog({
               {subject?.name ?? "Disciplina"}
             </h2>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Fechar cronômetro" onClick={handleClose}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Fechar cronômetro"
+            onClick={() => handleClose()}
+          >
             <X />
           </Button>
         </div>
@@ -347,7 +363,71 @@ export function TimerDialog({
               />
             </div>
 
-            {reached ? (
+            {wrapMode ? (
+              <div key="wrap">
+                <div
+                  role="alert"
+                  className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-mint/25 px-4 py-3 text-center text-sm font-semibold text-mint-foreground"
+                >
+                  <AlarmClock className="size-4 shrink-0" />
+                  {wrapMode === "partial"
+                    ? `Registrando ${formatSeconds(Math.floor(elapsed))} estudados`
+                    : "Meta atingida! Registre suas horas."}
+                </div>
+                <div className="mt-5 rounded-xl border bg-background p-4">
+                  <p className="text-sm font-semibold">
+                    Quantas questões você fez sobre esse assunto?
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Todos os campos são opcionais.
+                  </p>
+                  <label className="mt-4 flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Matéria / tópico estudado
+                    </span>
+                    <input
+                      type="text"
+                      value={topic}
+                      placeholder="Ex.: Crase, Regência Verbal"
+                      onChange={(e) => setTopic(e.target.value)}
+                      className="h-10 w-full rounded-xl border bg-card px-3 text-sm outline-none focus:border-mint"
+                    />
+                  </label>
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <NumberField label="Acertos" value={correct} onChange={setCorrect} />
+                    <NumberField label="Erros" value={wrong} onChange={setWrong} />
+                    <NumberField
+                      label="Total"
+                      value={total}
+                      onChange={setTotal}
+                      placeholder={autoTotal === null ? "" : String(autoTotal)}
+                    />
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <Button variant="mint" size="pill" className="flex-1" onClick={submitQuestions}>
+                      <Check /> {wrapMode === "partial" ? "Salvar e sair" : "Salvar e concluir"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="pill"
+                      className="flex-1"
+                      onClick={() =>
+                        wrapMode === "partial"
+                          ? handleClose({
+                              total: null,
+                              correct: null,
+                              wrong: null,
+                              topic: subject?.name ?? null,
+                            })
+                          : handleFinish()
+                      }
+                    >
+                      Pular
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : reached ? (
               <div key="done">
                 <div
                   role="alert"
@@ -356,65 +436,14 @@ export function TimerDialog({
                   <AlarmClock className="size-4 shrink-0" />
                   Meta atingida! Registre suas horas.
                 </div>
-                {askQuestions ? (
-                  <div className="mt-5 rounded-xl border bg-background p-4">
-                    <p className="text-sm font-semibold">
-                      Quantas questões você fez sobre esse assunto?
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Todos os campos são opcionais.
-                    </p>
-                    <label className="mt-4 flex flex-col gap-1">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Tópico estudado
-                      </span>
-                      <input
-                        type="text"
-                        value={topic}
-                        placeholder="Ex.: Crase, Regência Verbal"
-                        onChange={(e) => setTopic(e.target.value)}
-                        className="h-10 w-full rounded-xl border bg-card px-3 text-sm outline-none focus:border-mint"
-                      />
-                    </label>
-                    <div className="mt-4 grid grid-cols-3 gap-2">
-                      <NumberField label="Acertos" value={correct} onChange={setCorrect} />
-                      <NumberField label="Erros" value={wrong} onChange={setWrong} />
-                      <NumberField
-                        label="Total"
-                        value={total}
-                        onChange={setTotal}
-                        placeholder={autoTotal === null ? "" : String(autoTotal)}
-                      />
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <Button
-                        variant="mint"
-                        size="pill"
-                        className="flex-1"
-                        onClick={submitQuestions}
-                      >
-                        <Check /> Salvar e concluir
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="pill"
-                        className="flex-1"
-                        onClick={() => handleFinish()}
-                      >
-                        Pular
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    variant="mint"
-                    size="pill"
-                    className="mt-4 w-full"
-                    onClick={() => setAskQuestions(true)}
-                  >
-                    <Check /> Concluir
-                  </Button>
-                )}
+                <Button
+                  variant="mint"
+                  size="pill"
+                  className="mt-4 w-full"
+                  onClick={() => setWrapMode("finish")}
+                >
+                  <Check /> Concluir
+                </Button>
               </div>
             ) : (
               <div key="controls" className="mt-6 flex gap-2">
@@ -434,7 +463,12 @@ export function TimerDialog({
                     </>
                   )}
                 </Button>
-                <Button variant="outline" size="pill" className="flex-1" onClick={handleClose}>
+                <Button
+                  variant="outline"
+                  size="pill"
+                  className="flex-1"
+                  onClick={openPartialWrapUp}
+                >
                   Salvar e sair
                 </Button>
               </div>
