@@ -60,11 +60,18 @@ export function SubjectPanel() {
           wrong,
           total,
           accuracy: total ? (correct / total) * 100 : null,
-          topics: topicBreakdown(logs),
+          topics: topicBreakdown(
+            logs,
+            Object.fromEntries(
+              Object.entries(topicAliases)
+                .filter(([k]) => k.startsWith(`${s.id}::`))
+                .map(([k, v]) => [k.slice(s.id.length + 2), v]),
+            ),
+          ),
         };
       })
       .sort((a, b) => a.subject.name.localeCompare(b.subject.name, "pt-BR"));
-  }, [studyLogs, subjects, savedPlans]);
+  }, [studyLogs, subjects, savedPlans, topicAliases]);
 
   return (
     <section className="rounded-2xl bg-card p-5 shadow-soft">
