@@ -41,6 +41,7 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
     supabase.from("cycle_stats").select("*").eq("user_id", userId),
     supabase.from("study_logs").select("*").eq("user_id", userId).order("studied_at"),
     supabase.from("mind_maps").select("*").eq("user_id", userId).eq("scope", "subject"),
+    supabase.from("topic_aliases").select("*").eq("user_id", userId),
   ]);
 
   const savedPlans: SavedPlan[] = (plans.data ?? []).map((p) => {
