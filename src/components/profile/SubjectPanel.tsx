@@ -206,11 +206,11 @@ export function SubjectPanel() {
                               type="button"
                               aria-label={`Excluir ${t.label}`}
                               onClick={() =>
-                                setRemoving({
-                                  subjectId: r.subject.id,
-                                  topicKey: t.key,
-                                  label: t.label,
-                                })
+                                 setRemoving({
+                                   subjectId: r.subject.id,
+                                   sources: t.sources,
+                                   label: t.label,
+                                 })
                               }
                               className="text-muted-foreground transition-colors hover:text-destructive"
                             >
