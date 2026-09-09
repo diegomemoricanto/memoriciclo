@@ -192,15 +192,11 @@ export function SubjectPanel() {
                               type="button"
                               aria-label={`Editar ${t.label}`}
                               onClick={() =>
-                                setEditing({
-                                  subjectId: r.subject.id,
-                                  topicKey: t.key,
-                                  label: t.label,
-                                  hours: String(Math.floor(t.seconds / 3600)),
-                                  minutes: String(Math.floor((t.seconds % 3600) / 60)),
-                                  correct: String(t.correct),
-                                  wrong: String(t.wrong),
-                                })
+                                 setEditing({
+                                   subjectId: r.subject.id,
+                                   sources: t.sources,
+                                   label: t.label,
+                                 })
                               }
                               className="text-muted-foreground transition-colors hover:text-foreground"
                             >
