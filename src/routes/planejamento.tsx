@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PlanWizard } from "@/components/study/PlanWizard";
-import { TimerDialog } from "@/components/study/TimerDialog";
+import { TimerDialog, type WrapUpResult } from "@/components/study/TimerDialog";
 import { ManualStudyForm, type ManualEntry } from "@/components/study/ManualStudyForm";
 import { cn } from "@/lib/utils";
 import { Landing } from "@/components/study/Landing";
