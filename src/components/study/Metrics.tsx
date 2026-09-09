@@ -164,7 +164,7 @@ export function Metrics() {
       correct,
       accuracy: answered ? (correct / answered) * 100 : 0,
     };
-  }, [known, studyLogs]);
+  }, [known, studyLogs, topicAliases]);
 
   const distribution = useMemo(
     () =>
