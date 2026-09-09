@@ -95,29 +95,20 @@ function DashboardInner() {
     setActiveId(id);
   };
 
-  const savePartial = (
-    session: Session,
-    totalSeconds: number,
-    delta: number,
-    questions?: QuestionsEntry,
-  ) => {
-    if (delta > 0) addStudyLog(session.subjectId, delta, questions);
-    updateSession(session.id, { studiedSeconds: totalSeconds });
+  /** encerramento único: grava o log (matéria + assunto + questões) e o progresso da sessão */
+  const wrapUp = (session: Session, result: WrapUpResult, complete: boolean) => {
+    addStudyLog(session.subjectId, result.deltaSeconds, result.questions, {
+      sessionId: session.id,
+      startedAt: result.startedAt,
+    });
+    updateSession(session.id, {
+      studiedSeconds: result.totalSeconds,
+      completed: complete || session.completed,
+    });
     setActiveId(null);
     setLiveSeconds(null);
   };
 
-  const finishSession = (
-    session: Session,
-    totalSeconds: number,
-    delta: number,
-    questions?: QuestionsEntry,
-  ) => {
-    addStudyLog(session.subjectId, delta, questions);
-    updateSession(session.id, { studiedSeconds: totalSeconds, completed: true });
-    setActiveId(null);
-    setLiveSeconds(null);
-  };
 
   const handleTick = useCallback((total: number) => setLiveSeconds(total), []);
 
