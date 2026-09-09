@@ -100,8 +100,17 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
   };
 }
 
-/** grava um planejamento completo (plano, disciplinas, sessões, ciclos) e o marca como ativo */
-export async function saveRemotePlan(userId: string, entry: SavedPlan) {
+/**
+ * grava um planejamento completo (plano, disciplinas, sessões, ciclos) e o marca como ativo.
+ * `protectedSubjectIds` são disciplinas que já têm histórico registrado: mesmo que saiam
+ * do plano, suas linhas permanecem para que os logs antigos continuem com nome e cor.
+ */
+export async function saveRemotePlan(
+  userId: string,
+  entry: SavedPlan,
+  protectedSubjectIds: string[] = [],
+) {
+
   check(
     await supabase.from("saved_plans").upsert(
     {
