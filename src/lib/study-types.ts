@@ -79,7 +79,11 @@ export function subjectSessionDurations(subject: Subject) {
   return { options: [grid], tooShort: true };
 }
 
-export const uid = () => Math.random().toString(36).slice(2, 10);
+/** identificador único (UUID v4 quando disponível) — evita colisão de registros */
+export const uid = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}-${Math.random().toString(36).slice(2, 12)}`;
 
 export function colorForIndex(i: number): string {
   return SUBJECT_PALETTE[i % SUBJECT_PALETTE.length] as string;

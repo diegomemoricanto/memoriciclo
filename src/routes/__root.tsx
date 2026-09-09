@@ -18,6 +18,7 @@ import { signOut, uploadAvatar, useAuth } from "@/lib/auth-store";
 import { AccountDialog } from "@/components/profile/AccountDialog";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { SyncStatus } from "@/components/study/SyncStatus";
 
 function NotFoundComponent() {
   return (
@@ -177,7 +178,8 @@ function RootComponent() {
             >
               Mapas Mentais
             </Link>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-3">
+              <SyncStatus />
               <UserMenu />
             </div>
           </nav>

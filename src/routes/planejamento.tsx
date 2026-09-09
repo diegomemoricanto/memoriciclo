@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-store";
+import {
+  LOCK_HEARTBEAT_MS,
+  acquireSessionLock,
+  heartbeatSessionLock,
+  releaseSessionLock,
+} from "@/lib/session-lock";
 import {
   Calendar,
   Check,
@@ -79,6 +87,20 @@ function DashboardInner() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [liveSeconds, setLiveSeconds] = useState<number | null>(null);
+  const { userId } = useAuth();
+
+  /* mantém a trava viva enquanto o cronômetro está aberto e a libera ao sair */
+  useEffect(() => {
+    if (!activeId) return;
+    void heartbeatSessionLock(userId, activeId);
+    const t = setInterval(() => void heartbeatSessionLock(userId, activeId), LOCK_HEARTBEAT_MS);
+    const release = () => void releaseSessionLock(userId);
+    window.addEventListener("pagehide", release);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("pagehide", release);
+    };
+  }, [activeId, userId]);
 
   const subjectById = useMemo(() => Object.fromEntries(subjects.map((s) => [s.id, s])), [subjects]);
 
@@ -91,8 +113,19 @@ function DashboardInner() {
   const openSession = (id: string) => {
     const session = sessions.find((s) => s.id === id);
     if (!session || session.completed) return;
-    setLiveSeconds(session.studiedSeconds);
-    setActiveId(id);
+    void acquireSessionLock(userId, id).then((lock) => {
+      if (!lock.ok) {
+        toast.error(
+          lock.reason === "tab"
+            ? "Já existe uma sessão de estudo em andamento em outra aba deste navegador."
+            : "Já existe uma sessão de estudo em andamento em outro aparelho.",
+          { description: "Encerre a sessão lá antes de iniciar outra por aqui." },
+        );
+        return;
+      }
+      setLiveSeconds(session.studiedSeconds);
+      setActiveId(id);
+    });
   };
 
   /** encerramento único: grava o log (matéria + assunto + questões) e o progresso da sessão */
@@ -105,6 +138,7 @@ function DashboardInner() {
       studiedSeconds: result.totalSeconds,
       completed: complete || session.completed,
     });
+    void releaseSessionLock(userId);
     setActiveId(null);
     setLiveSeconds(null);
   };
