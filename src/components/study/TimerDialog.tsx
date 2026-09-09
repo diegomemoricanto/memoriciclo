@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlarmClock, Brain, Check, Pause, Play, TimerIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MindMapPanel } from "./MindMapPanel";
 import { cn } from "@/lib/utils";
 import { formatMinutes, formatSeconds, type Session, type Subject } from "@/lib/study-types";
 import type { QuestionsEntry } from "@/lib/study-store";
+import { addTopic, useSubjectTopics } from "@/lib/topics-store";
+import {
+  clearPersistedTimer,
+  readPersistedTimer,
+  writePersistedTimer,
+} from "@/lib/timer-persistence";
 
 function playAlert() {
   try {
@@ -31,7 +37,12 @@ function playAlert() {
 }
 
 function formatClock(totalSeconds: number) {
-  return formatClockImpl(totalSeconds);
+  const s = Math.max(0, Math.ceil(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
 }
 
 function NumberField({
@@ -63,50 +74,16 @@ function NumberField({
   );
 }
 
-function formatClockImpl(totalSeconds: number) {
-  const s = Math.max(0, Math.ceil(totalSeconds));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
-}
-
-type PersistedTimer = {
-  baseElapsed: number;
-  startedAt: number | null;
-  targetSeconds: number;
+/** payload único de encerramento — vale para conclusão e para saída parcial */
+export type WrapUpResult = {
+  totalSeconds: number;
+  deltaSeconds: number;
+  questions: QuestionsEntry;
+  /** ISO do início real da sessão */
+  startedAt: string;
 };
 
-const TIMER_KEY_PREFIX = "painel-estudos-timer:";
-
-function readPersisted(sessionId: string): PersistedTimer | null {
-  try {
-    const raw = localStorage.getItem(TIMER_KEY_PREFIX + sessionId);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as PersistedTimer;
-    if (typeof parsed?.baseElapsed !== "number") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function writePersisted(sessionId: string, state: PersistedTimer) {
-  try {
-    localStorage.setItem(TIMER_KEY_PREFIX + sessionId, JSON.stringify(state));
-  } catch {
-    /* ignore */
-  }
-}
-
-function clearPersisted(sessionId: string) {
-  try {
-    localStorage.removeItem(TIMER_KEY_PREFIX + sessionId);
-  } catch {
-    /* ignore */
-  }
-}
+const NEW_TOPIC = "__new__";
 
 export function TimerDialog({
   session,
@@ -117,9 +94,10 @@ export function TimerDialog({
 }: {
   session: Session;
   subject: Subject | undefined;
-  /** salva progresso parcial (segundos totais, delta desta abertura) */
-  onClose: (totalSeconds: number, deltaSeconds: number, questions?: QuestionsEntry) => void;
-  onFinish: (totalSeconds: number, deltaSeconds: number, questions?: QuestionsEntry) => void;
+  /** saída parcial: grava o tempo real estudado sem concluir a sessão */
+  onClose: (result: WrapUpResult) => void;
+  /** conclusão da sessão */
+  onFinish: (result: WrapUpResult) => void;
   /** notifica o tempo decorrido para atualização visual em tempo real */
   onTick?: (totalSeconds: number) => void;
 }) {
@@ -128,8 +106,8 @@ export function TimerDialog({
   /** base = segundos já acumulados enquanto pausado; startedAt = timestamp do trecho em andamento */
   const baseRef = useRef(session.studiedSeconds);
   const startedAtRef = useRef<number | null>(null);
-  /* elapsed e running vivem no MESMO estado: pausar/retomar e o tick nunca
-     produzem dois commits concorrentes no meio de uma troca de layout. */
+  /** ISO do início do estudo desta sessão (usado como data do registro) */
+  const startedIsoRef = useRef(new Date().toISOString());
   const [clock, setClock] = useState<{ elapsed: number; running: boolean }>({
     elapsed: session.studiedSeconds,
     running: false,
@@ -141,37 +119,49 @@ export function TimerDialog({
   const [tab, setTab] = useState<"timer" | "map">("timer");
   /** null = cronômetro; "finish" = concluída; "partial" = salvar e sair */
   const [wrapMode, setWrapMode] = useState<null | "finish" | "partial">(null);
-  const [topic, setTopic] = useState(subject?.name ?? "");
+
+  const allTopics = useSubjectTopics();
+  const topics = useMemo(
+    () => (subject ? (allTopics[subject.id] ?? []) : []),
+    [allTopics, subject],
+  );
+  /** assunto escolhido: "" = sem assunto, NEW_TOPIC = criar novo */
+  const [topicChoice, setTopicChoice] = useState("");
+  const [newTopic, setNewTopic] = useState("");
   const [correct, setCorrect] = useState("");
   const [wrong, setWrong] = useState("");
   const [total, setTotal] = useState("");
   const remaining = Math.max(0, targetSeconds - elapsed);
 
   const persist = useCallback(() => {
-    writePersisted(session.id, {
+    writePersistedTimer(session.id, {
       baseElapsed: baseRef.current,
       startedAt: startedAtRef.current,
       targetSeconds,
+      startedIso: startedIsoRef.current,
     });
   }, [session.id, targetSeconds]);
 
+  /** tempo real decorrido, sem truncar na meta (sessão e log usam o mesmo número) */
   const compute = useCallback(() => {
     const active = startedAtRef.current !== null;
     const live = active ? (Date.now() - (startedAtRef.current as number)) / 1000 : 0;
-    return Math.min(targetSeconds, Math.round(baseRef.current + live));
-  }, [targetSeconds]);
+    return Math.max(0, Math.round(baseRef.current + live));
+  }, []);
 
   /* restaura estado persistido (ou inicia rodando) */
   useEffect(() => {
-    const saved = readPersisted(session.id);
+    const saved = readPersistedTimer(session.id);
     if (saved) {
-      baseRef.current = Math.max(saved.baseElapsed, session.studiedSeconds);
+      baseRef.current = saved.baseElapsed;
       startedAtRef.current = saved.startedAt;
+      startedIsoRef.current = saved.startedIso ?? new Date().toISOString();
     } else {
       baseRef.current = session.studiedSeconds;
       startedAtRef.current = Date.now();
+      startedIsoRef.current = new Date().toISOString();
     }
-    startRef.current = session.studiedSeconds;
+    startRef.current = baseRef.current;
     setClock({ elapsed: compute(), running: startedAtRef.current !== null });
     persist();
     setReady(true);
@@ -203,16 +193,15 @@ export function TimerDialog({
   useEffect(() => {
     if (reached && !alerted.current) {
       alerted.current = true;
-      baseRef.current = targetSeconds;
+      baseRef.current = elapsed;
       startedAtRef.current = null;
-      setClock({ elapsed: targetSeconds, running: false });
+      setClock({ elapsed, running: false });
       persist();
       playAlert();
     }
-  }, [reached, targetSeconds, persist]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reached]);
 
-  /* mantém o callback em ref: mudanças de identidade do onTick não reagendam
-     efeitos, e só notificamos quando o segundo inteiro realmente muda. */
   const onTickRef = useRef(onTick);
   onTickRef.current = onTick;
   const lastNotified = useRef<number | null>(null);
@@ -234,31 +223,13 @@ export function TimerDialog({
     persist();
   };
 
-  const stop = () => {
+  /** pausa o cronômetro e abre o formulário de encerramento (único caminho de gravação) */
+  const openWrapUp = (mode: "finish" | "partial") => {
     baseRef.current = compute();
     startedAtRef.current = null;
-  };
-
-  const handleClose = (questions?: QuestionsEntry) => {
-    stop();
-    const total = baseRef.current;
+    setClock({ elapsed: baseRef.current, running: false });
     persist();
-    onClose(total, Math.max(0, total - startRef.current), questions);
-  };
-
-  /** pausa o cronômetro e abre o formulário de encerramento parcial */
-  const openPartialWrapUp = () => {
-    stop();
-    setClock({ elapsed: compute(), running: false });
-    persist();
-    setWrapMode("partial");
-  };
-
-  const handleFinish = (questions?: QuestionsEntry) => {
-    stop();
-    const total = baseRef.current;
-    clearPersisted(session.id);
-    onFinish(total, Math.max(0, total - startRef.current), questions);
+    setWrapMode(mode);
   };
 
   const num = (v: string) => {
@@ -273,10 +244,42 @@ export function TimerDialog({
   })();
   const totalValue = total.trim() === "" ? autoTotal : num(total);
 
-  const submitQuestions = () => {
-    const questions = { total: totalValue, correct: num(correct), wrong: num(wrong), topic };
-    if (wrapMode === "partial") handleClose(questions);
-    else handleFinish(questions);
+  /** resolve o assunto escolhido, criando-o na lista normalizada se for novo */
+  const resolveTopic = (): string | null => {
+    if (topicChoice === NEW_TOPIC) {
+      const clean = newTopic.trim();
+      if (!clean) return null;
+      const existing = topics.find((t) => t.name.toLowerCase() === clean.toLowerCase());
+      if (existing) return existing.name;
+      if (subject) addTopic(subject.id, clean);
+      return clean;
+    }
+    if (!topicChoice) return null;
+    return topics.find((t) => t.id === topicChoice)?.name ?? null;
+  };
+
+  /** ÚNICO ponto de gravação de encerramento de sessão */
+  const commit = (withQuestions: boolean) => {
+    baseRef.current = compute();
+    startedAtRef.current = null;
+    const totalSeconds = baseRef.current;
+    const result: WrapUpResult = {
+      totalSeconds,
+      deltaSeconds: Math.max(0, totalSeconds - startRef.current),
+      questions: withQuestions
+        ? {
+            total: totalValue,
+            correct: num(correct),
+            wrong: num(wrong),
+            topic: resolveTopic(),
+          }
+        : { total: null, correct: null, wrong: null, topic: resolveTopic() },
+      startedAt: startedIsoRef.current,
+    };
+    /* o cronômetro salvo nunca sobrevive a um encerramento, parcial ou completo */
+    clearPersistedTimer(session.id);
+    if (wrapMode === "finish") onFinish(result);
+    else onClose(result);
   };
 
   const progress = Math.min(100, (elapsed / targetSeconds) * 100);
@@ -310,8 +313,11 @@ export function TimerDialog({
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Fechar cronômetro"
-            onClick={() => handleClose()}
+            aria-label="Encerrar e registrar sessão"
+            onClick={() => {
+              setTab("timer");
+              openWrapUp(reached ? "finish" : "partial");
+            }}
           >
             <X />
           </Button>
@@ -376,23 +382,39 @@ export function TimerDialog({
                 </div>
                 <div className="mt-5 rounded-xl border bg-background p-4">
                   <p className="text-sm font-semibold">
-                    Quantas questões você fez sobre esse assunto?
+                    O que você estudou em {subject?.name ?? "esta disciplina"}?
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Todos os campos são opcionais.
                   </p>
                   <label className="mt-4 flex flex-col gap-1">
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Matéria / tópico estudado
+                      Assunto estudado
                     </span>
+                    <select
+                      value={topicChoice}
+                      onChange={(e) => setTopicChoice(e.target.value)}
+                      className="h-10 w-full rounded-xl border bg-card px-3 text-sm outline-none focus:border-mint"
+                    >
+                      <option value="">Sem assunto específico</option>
+                      {topics.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                      <option value={NEW_TOPIC}>+ Novo assunto…</option>
+                    </select>
+                  </label>
+                  {topicChoice === NEW_TOPIC && (
                     <input
                       type="text"
-                      value={topic}
-                      placeholder="Ex.: Crase, Regência Verbal"
-                      onChange={(e) => setTopic(e.target.value)}
-                      className="h-10 w-full rounded-xl border bg-card px-3 text-sm outline-none focus:border-mint"
+                      value={newTopic}
+                      autoFocus
+                      placeholder="Nome do novo assunto"
+                      onChange={(e) => setNewTopic(e.target.value)}
+                      className="mt-2 h-10 w-full rounded-xl border bg-card px-3 text-sm outline-none focus:border-mint"
                     />
-                  </label>
+                  )}
                   <div className="mt-4 grid grid-cols-3 gap-2">
                     <NumberField label="Acertos" value={correct} onChange={setCorrect} />
                     <NumberField label="Erros" value={wrong} onChange={setWrong} />
@@ -404,23 +426,19 @@ export function TimerDialog({
                     />
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <Button variant="mint" size="pill" className="flex-1" onClick={submitQuestions}>
+                    <Button
+                      variant="mint"
+                      size="pill"
+                      className="flex-1"
+                      onClick={() => commit(true)}
+                    >
                       <Check /> {wrapMode === "partial" ? "Salvar e sair" : "Salvar e concluir"}
                     </Button>
                     <Button
                       variant="outline"
                       size="pill"
                       className="flex-1"
-                      onClick={() =>
-                        wrapMode === "partial"
-                          ? handleClose({
-                              total: null,
-                              correct: null,
-                              wrong: null,
-                              topic: subject?.name ?? null,
-                            })
-                          : handleFinish()
-                      }
+                      onClick={() => commit(false)}
                     >
                       Pular
                     </Button>
@@ -440,7 +458,7 @@ export function TimerDialog({
                   variant="mint"
                   size="pill"
                   className="mt-4 w-full"
-                  onClick={() => setWrapMode("finish")}
+                  onClick={() => openWrapUp("finish")}
                 >
                   <Check /> Concluir
                 </Button>
@@ -467,7 +485,7 @@ export function TimerDialog({
                   variant="outline"
                   size="pill"
                   className="flex-1"
-                  onClick={openPartialWrapUp}
+                  onClick={() => openWrapUp("partial")}
                 >
                   Salvar e sair
                 </Button>
