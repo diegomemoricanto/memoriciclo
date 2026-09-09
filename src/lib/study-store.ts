@@ -41,6 +41,8 @@ export type StudyState = {
   savedPlans: SavedPlan[];
   activePlanId: string | null;
   subjectMindMaps: Record<string, MindNode>;
+  /** apelidos de exibição de assuntos: `${subjectId}::${chaveOriginal}` -> rótulo */
+  topicAliases: Record<string, string>;
   loading: boolean;
   pendingSync: PendingOp[];
 };
