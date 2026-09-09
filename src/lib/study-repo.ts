@@ -85,6 +85,7 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
     studyLogs: (logs.data ?? []).map((l) => ({
       id: l.id,
       subjectId: l.subject_id,
+      sessionId: (l as { session_id?: string | null }).session_id ?? null,
       date: l.studied_at,
       durationSeconds: l.duration_seconds,
       topic: l.topic,
@@ -92,24 +93,33 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
       questionsCorrect: l.questions_correct,
       questionsWrong: l.questions_wrong,
     })),
+
     subjectMindMaps: Object.fromEntries(
       (maps.data ?? []).map((m) => [m.ref_id, m.data as unknown as MindNode]),
     ),
   };
 }
 
-/** grava um planejamento completo (plano, disciplinas, sessões, ciclos) e o marca como ativo */
-export async function saveRemotePlan(userId: string, entry: SavedPlan) {
+/**
+ * grava um planejamento completo (plano, disciplinas, sessões, ciclos) e o marca como ativo.
+ * `protectedSubjectIds` são disciplinas que já têm histórico registrado: mesmo que saiam
+ * do plano, suas linhas permanecem para que os logs antigos continuem com nome e cor.
+ */
+export async function saveRemotePlan(
+  userId: string,
+  entry: SavedPlan,
+  protectedSubjectIds: string[] = [],
+) {
   check(
     await supabase.from("saved_plans").upsert(
-    {
-      id: entry.id,
-      user_id: userId,
-      name: entry.name,
-      created_at: entry.createdAt,
-      is_active: true,
-    },
-    { onConflict: "user_id,id" },
+      {
+        id: entry.id,
+        user_id: userId,
+        name: entry.name,
+        created_at: entry.createdAt,
+        is_active: true,
+      },
+      { onConflict: "user_id,id" },
     ),
     "saved_plans.upsert",
   );
@@ -124,75 +134,97 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
 
   check(
     await supabase.from("plan_settings").upsert(
-    {
-      plan_id: entry.id,
-      user_id: userId,
-      weekly_hours: entry.plan.weeklyHours,
-      study_days: entry.plan.studyDays,
-      min_session_minutes: entry.plan.minSessionMinutes ?? null,
-      max_session_minutes: entry.plan.maxSessionMinutes ?? null,
-    },
-    { onConflict: "user_id,plan_id" },
+      {
+        plan_id: entry.id,
+        user_id: userId,
+        weekly_hours: entry.plan.weeklyHours,
+        study_days: entry.plan.studyDays,
+        min_session_minutes: entry.plan.minSessionMinutes ?? null,
+        max_session_minutes: entry.plan.maxSessionMinutes ?? null,
+      },
+      { onConflict: "user_id,plan_id" },
     ),
     "plan_settings.upsert",
   );
   check(
     await supabase.from("cycle_stats").upsert(
-    {
-      plan_id: entry.id,
-      user_id: userId,
-      completed_cycles: entry.cycleStats.completedCycles,
-    },
-    { onConflict: "user_id,plan_id" },
+      {
+        plan_id: entry.id,
+        user_id: userId,
+        completed_cycles: entry.cycleStats.completedCycles,
+      },
+      { onConflict: "user_id,plan_id" },
     ),
     "cycle_stats.upsert",
   );
 
-  check(
-    await supabase.from("sessions").delete().eq("user_id", userId).eq("plan_id", entry.id),
-    "sessions.delete",
-  );
-  check(
-    await supabase.from("subjects").delete().eq("user_id", userId).eq("plan_id", entry.id),
-    "subjects.delete",
-  );
-
+  /* gravação não-destrutiva: faz upsert do que existe agora e remove apenas
+     as linhas que saíram do plano (nunca apaga tudo para reinserir). */
   if (entry.subjects.length) {
     check(
-      await supabase.from("subjects").insert(
-      entry.subjects.map((s, i) => ({
-        id: s.id,
-        plan_id: entry.id,
-        user_id: userId,
-        name: s.name,
-        color: s.color,
-        importance: s.importance,
-        knowledge: s.knowledge,
-        min_session_minutes: s.minSessionMinutes ?? null,
-        max_session_minutes: s.maxSessionMinutes ?? null,
-        position: i,
-      })),
+      await supabase.from("subjects").upsert(
+        entry.subjects.map((s, i) => ({
+          id: s.id,
+          plan_id: entry.id,
+          user_id: userId,
+          name: s.name,
+          color: s.color,
+          importance: s.importance,
+          knowledge: s.knowledge,
+          min_session_minutes: s.minSessionMinutes ?? null,
+          max_session_minutes: s.maxSessionMinutes ?? null,
+          position: i,
+        })),
+        { onConflict: "user_id,plan_id,id" },
       ),
-      "subjects.insert",
+      "subjects.upsert",
     );
   }
   if (entry.sessions.length) {
     check(
-      await supabase.from("sessions").insert(
-      entry.sessions.map((s) => ({
-        id: s.id,
-        plan_id: entry.id,
-        user_id: userId,
-        subject_id: s.subjectId,
-        target_minutes: s.targetMinutes,
-        studied_seconds: s.studiedSeconds,
-        completed: s.completed,
-        order_index: s.order,
-      })),
+      await supabase.from("sessions").upsert(
+        entry.sessions.map((s) => ({
+          id: s.id,
+          plan_id: entry.id,
+          user_id: userId,
+          subject_id: s.subjectId,
+          target_minutes: s.targetMinutes,
+          studied_seconds: s.studiedSeconds,
+          completed: s.completed,
+          order_index: s.order,
+        })),
+        { onConflict: "user_id,plan_id,id" },
       ),
-      "sessions.insert",
+      "sessions.upsert",
     );
   }
+
+  const keepSessions = entry.sessions.map((s) => s.id);
+  const staleSessions = supabase
+    .from("sessions")
+    .delete()
+    .eq("user_id", userId)
+    .eq("plan_id", entry.id);
+  check(
+    await (keepSessions.length
+      ? staleSessions.not("id", "in", `(${keepSessions.map((id) => `"${id}"`).join(",")})`)
+      : staleSessions),
+    "sessions.prune",
+  );
+
+  const keepSubjects = [...new Set([...entry.subjects.map((s) => s.id), ...protectedSubjectIds])];
+
+  const staleSubjects = supabase
+    .from("subjects")
+    .delete()
+    .eq("user_id", userId)
+    .eq("plan_id", entry.id);
+  check(
+    await (keepSubjects.length
+      ? staleSubjects.not("id", "in", `(${keepSubjects.map((id) => `"${id}"`).join(",")})`)
+      : staleSubjects),
+    "subjects.prune",
+  );
 }
 
 export async function setRemoteActivePlan(userId: string, planId: string) {
@@ -246,10 +278,10 @@ export async function resetRemoteCycle(userId: string, planId: string, completed
   );
   check(
     await supabase.from("cycle_stats").upsert(
-    { plan_id: planId, user_id: userId, completed_cycles: completedCycles },
-    {
-      onConflict: "user_id,plan_id",
-    },
+      { plan_id: planId, user_id: userId, completed_cycles: completedCycles },
+      {
+        onConflict: "user_id,plan_id",
+      },
     ),
     "cycle_stats.upsert",
   );
@@ -258,26 +290,24 @@ export async function resetRemoteCycle(userId: string, planId: string, completed
 export async function insertRemoteStudyLog(userId: string, planId: string | null, log: StudyLog) {
   check(
     await supabase.from("study_logs").insert({
-    id: log.id,
-    user_id: userId,
-    plan_id: planId,
-    subject_id: log.subjectId,
-    studied_at: log.date,
-    duration_seconds: log.durationSeconds,
-    topic: log.topic ?? null,
-    questions_total: log.questionsTotal ?? null,
-    questions_correct: log.questionsCorrect ?? null,
-    questions_wrong: log.questionsWrong ?? null,
+      id: log.id,
+      user_id: userId,
+      plan_id: planId,
+      subject_id: log.subjectId,
+      session_id: log.sessionId ?? null,
+      studied_at: log.date,
+      duration_seconds: log.durationSeconds,
+      topic: log.topic ?? null,
+      questions_total: log.questionsTotal ?? null,
+      questions_correct: log.questionsCorrect ?? null,
+      questions_wrong: log.questionsWrong ?? null,
     }),
+
     "study_logs.insert",
   );
 }
 
-export async function updateRemoteStudyLog(
-  userId: string,
-  id: string,
-  patch: Partial<StudyLog>,
-) {
+export async function updateRemoteStudyLog(userId: string, id: string, patch: Partial<StudyLog>) {
   const payload = {
     ...(patch.durationSeconds !== undefined ? { duration_seconds: patch.durationSeconds } : {}),
     ...(patch.topic !== undefined ? { topic: patch.topic ?? null } : {}),
@@ -314,14 +344,14 @@ export async function upsertRemoteMindMap(
 ) {
   check(
     await supabase.from("mind_maps").upsert(
-    {
-      user_id: userId,
-      scope,
-      ref_id: refId,
-      data: data as unknown as never,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,scope,ref_id" },
+      {
+        user_id: userId,
+        scope,
+        ref_id: refId,
+        data: data as unknown as never,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,scope,ref_id" },
     ),
     "mind_maps.upsert",
   );
