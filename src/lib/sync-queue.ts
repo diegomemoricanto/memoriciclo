@@ -29,6 +29,14 @@ export type PendingOp =
       scope: "topic" | "subject";
       refId: string;
       data: MindNode;
+    }
+  | {
+      kind: "topicAlias";
+      id: string;
+      subjectId: string;
+      sourceKey: string;
+      /** null = remover o apelido e voltar ao nome original */
+      label: string | null;
     };
 
 const STORAGE_KEY = "pendingSync";
