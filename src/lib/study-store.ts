@@ -25,6 +25,8 @@ import {
   subscribePendingSync,
   type PendingOp,
 } from "./sync-queue";
+import { clearAllPersistedTimers } from "./timer-persistence";
+
 
 export type { SavedPlan };
 
