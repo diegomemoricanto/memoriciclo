@@ -177,7 +177,8 @@ function RootComponent() {
             >
               Mapas Mentais
             </Link>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-3">
+              <SyncStatus />
               <UserMenu />
             </div>
           </nav>

@@ -118,24 +118,27 @@ export function getState() {
 
 /** atualização local + sincronia do planejamento ativo salvo */
 export function setState(next: Partial<StudyState>) {
-  state = { ...state, ...next };
-  syncActivePlan();
+  state = syncActivePlan({ ...state, ...next });
   emit();
 }
 
-function syncActivePlan() {
-  if (!state.activePlanId || !state.plan) return;
-  state.savedPlans = state.savedPlans.map((p) =>
-    p.id === state.activePlanId
-      ? {
-          ...p,
-          subjects: state.subjects,
-          plan: state.plan as Plan,
-          sessions: state.sessions,
-          cycleStats: state.cycleStats,
-        }
-      : p,
-  );
+/** atualização imutável: devolve um novo estado com o planejamento ativo em sincronia */
+function syncActivePlan(current: StudyState): StudyState {
+  if (!current.activePlanId || !current.plan) return current;
+  return {
+    ...current,
+    savedPlans: current.savedPlans.map((p) =>
+      p.id === current.activePlanId
+        ? {
+            ...p,
+            subjects: current.subjects,
+            plan: current.plan as Plan,
+            sessions: current.sessions,
+            cycleStats: current.cycleStats,
+          }
+        : p,
+    ),
+  };
 }
 
 /** cria (ou atualiza) um planejamento e o define como ativo — grava no banco */
