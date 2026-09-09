@@ -150,52 +150,74 @@ export async function saveRemotePlan(userId: string, entry: SavedPlan) {
     "cycle_stats.upsert",
   );
 
-  check(
-    await supabase.from("sessions").delete().eq("user_id", userId).eq("plan_id", entry.id),
-    "sessions.delete",
-  );
-  check(
-    await supabase.from("subjects").delete().eq("user_id", userId).eq("plan_id", entry.id),
-    "subjects.delete",
-  );
-
+  /* gravação não-destrutiva: faz upsert do que existe agora e remove apenas
+     as linhas que saíram do plano (nunca apaga tudo para reinserir). */
   if (entry.subjects.length) {
     check(
-      await supabase.from("subjects").insert(
-      entry.subjects.map((s, i) => ({
-        id: s.id,
-        plan_id: entry.id,
-        user_id: userId,
-        name: s.name,
-        color: s.color,
-        importance: s.importance,
-        knowledge: s.knowledge,
-        min_session_minutes: s.minSessionMinutes ?? null,
-        max_session_minutes: s.maxSessionMinutes ?? null,
-        position: i,
-      })),
+      await supabase.from("subjects").upsert(
+        entry.subjects.map((s, i) => ({
+          id: s.id,
+          plan_id: entry.id,
+          user_id: userId,
+          name: s.name,
+          color: s.color,
+          importance: s.importance,
+          knowledge: s.knowledge,
+          min_session_minutes: s.minSessionMinutes ?? null,
+          max_session_minutes: s.maxSessionMinutes ?? null,
+          position: i,
+        })),
+        { onConflict: "user_id,plan_id,id" },
       ),
-      "subjects.insert",
+      "subjects.upsert",
     );
   }
   if (entry.sessions.length) {
     check(
-      await supabase.from("sessions").insert(
-      entry.sessions.map((s) => ({
-        id: s.id,
-        plan_id: entry.id,
-        user_id: userId,
-        subject_id: s.subjectId,
-        target_minutes: s.targetMinutes,
-        studied_seconds: s.studiedSeconds,
-        completed: s.completed,
-        order_index: s.order,
-      })),
+      await supabase.from("sessions").upsert(
+        entry.sessions.map((s) => ({
+          id: s.id,
+          plan_id: entry.id,
+          user_id: userId,
+          subject_id: s.subjectId,
+          target_minutes: s.targetMinutes,
+          studied_seconds: s.studiedSeconds,
+          completed: s.completed,
+          order_index: s.order,
+        })),
+        { onConflict: "user_id,plan_id,id" },
       ),
-      "sessions.insert",
+      "sessions.upsert",
     );
   }
+
+  const keepSessions = entry.sessions.map((s) => s.id);
+  const staleSessions = supabase
+    .from("sessions")
+    .delete()
+    .eq("user_id", userId)
+    .eq("plan_id", entry.id);
+  check(
+    await (keepSessions.length
+      ? staleSessions.not("id", "in", `(${keepSessions.map((id) => `"${id}"`).join(",")})`)
+      : staleSessions),
+    "sessions.prune",
+  );
+
+  const keepSubjects = entry.subjects.map((s) => s.id);
+  const staleSubjects = supabase
+    .from("subjects")
+    .delete()
+    .eq("user_id", userId)
+    .eq("plan_id", entry.id);
+  check(
+    await (keepSubjects.length
+      ? staleSubjects.not("id", "in", `(${keepSubjects.map((id) => `"${id}"`).join(",")})`)
+      : staleSubjects),
+    "subjects.prune",
+  );
 }
+
 
 export async function setRemoteActivePlan(userId: string, planId: string) {
   await supabase.from("saved_plans").update({ is_active: false }).eq("user_id", userId);
