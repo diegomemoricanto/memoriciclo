@@ -89,7 +89,7 @@ function accuracyColor(pct: number) {
 
 export function Metrics() {
   const [period, setPeriod] = useState<Period>("week");
-  const { studyLogs, subjects, savedPlans } = useStudyState();
+  const { studyLogs, subjects, savedPlans, topicAliases } = useStudyState();
   const { days: activityDays } = useActivityDays();
   const known = useMemo(() => allSubjects(subjects, savedPlans), [subjects, savedPlans]);
 
