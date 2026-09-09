@@ -85,6 +85,7 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
     studyLogs: (logs.data ?? []).map((l) => ({
       id: l.id,
       subjectId: l.subject_id,
+      sessionId: (l as { session_id?: string | null }).session_id ?? null,
       date: l.studied_at,
       durationSeconds: l.duration_seconds,
       topic: l.topic,
@@ -92,6 +93,7 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
       questionsCorrect: l.questions_correct,
       questionsWrong: l.questions_wrong,
     })),
+
     subjectMindMaps: Object.fromEntries(
       (maps.data ?? []).map((m) => [m.ref_id, m.data as unknown as MindNode]),
     ),
