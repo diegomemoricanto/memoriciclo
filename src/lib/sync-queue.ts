@@ -124,6 +124,10 @@ async function run(op: PendingOp, userId: string) {
       return resetRemoteCycle(userId, op.planId, op.completedCycles);
     case "mindMap":
       return upsertRemoteMindMap(userId, op.scope, op.refId, op.data);
+    case "topicAlias":
+      return op.label === null
+        ? deleteRemoteTopicAlias(userId, op.subjectId, op.sourceKey)
+        : upsertRemoteTopicAlias(userId, op.subjectId, op.sourceKey, op.label);
   }
 }
 
