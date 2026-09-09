@@ -2,11 +2,13 @@ import { toast } from "sonner";
 import type { Session, StudyLog } from "./study-types";
 import type { SavedPlan } from "./study-repo";
 import {
+  deleteRemoteTopicAlias,
   insertRemoteStudyLog,
   resetRemoteCycle,
   saveRemotePlan,
   updateRemoteSession,
   upsertRemoteMindMap,
+  upsertRemoteTopicAlias,
 } from "./study-repo";
 import type { MindNode } from "./mindmap-types";
 
