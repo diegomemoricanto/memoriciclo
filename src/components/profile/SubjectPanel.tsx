@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Table2, Trash2 } from "lucide-react";
-import { deleteTopicGroup, updateTopicGroup, useStudyState } from "@/lib/study-store";
+import { deleteTopicGroup, renameTopicGroup, useStudyState } from "@/lib/study-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
