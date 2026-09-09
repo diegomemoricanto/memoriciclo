@@ -213,7 +213,10 @@ export async function saveRemotePlan(
     "sessions.prune",
   );
 
-  const keepSubjects = entry.subjects.map((s) => s.id);
+  const keepSubjects = [
+    ...new Set([...entry.subjects.map((s) => s.id), ...protectedSubjectIds]),
+  ];
+
   const staleSubjects = supabase
     .from("subjects")
     .delete()
