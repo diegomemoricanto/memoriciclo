@@ -144,7 +144,14 @@ export function Metrics() {
           correct,
           wrong,
           accuracy: answered ? (correct / answered) * 100 : 0,
-          topics: topicBreakdown(logs).filter((t) => t.answered > 0),
+          topics: topicBreakdown(
+            logs,
+            Object.fromEntries(
+              Object.entries(topicAliases)
+                .filter(([k]) => k.startsWith(`${s.id}::`))
+                .map(([k, v]) => [k.slice(s.id.length + 2), v]),
+            ),
+          ).filter((t) => t.answered > 0),
         };
       })
       .filter((d) => d.answered > 0)
