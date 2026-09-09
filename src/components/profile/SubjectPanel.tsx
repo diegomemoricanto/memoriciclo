@@ -279,7 +279,7 @@ export function SubjectPanel() {
             <Button
               variant="destructive"
               onClick={() => {
-                if (removing) deleteTopicGroup(removing.subjectId, removing.topicKey);
+                if (removing) deleteTopicGroup(removing.subjectId, removing.sources);
                 setRemoving(null);
               }}
             >
