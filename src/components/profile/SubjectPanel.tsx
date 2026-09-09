@@ -230,16 +230,17 @@ export function SubjectPanel() {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar assunto</DialogTitle>
+            <DialogTitle>Renomear assunto</DialogTitle>
             <DialogDescription>
-              As alterações recalculam os totais da disciplina automaticamente.
+              O novo nome muda apenas a forma de exibir. Nenhum registro de estudo é alterado,
+              somado ou apagado — dois nomes iguais passam a aparecer juntos.
             </DialogDescription>
           </DialogHeader>
           {editing && (
             <div className="space-y-4">
               <label className="block text-sm">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Nome do assunto
+                  Nome exibido
                 </span>
                 <Input
                   className="mt-1"
@@ -247,71 +248,9 @@ export function SubjectPanel() {
                   onChange={(e) => setEditing({ ...editing, label: e.target.value })}
                 />
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Horas
-                  </span>
-                  <Input
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    value={editing.hours}
-                    onChange={(e) => setEditing({ ...editing, hours: e.target.value })}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Minutos
-                  </span>
-                  <Input
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    max={59}
-                    value={editing.minutes}
-                    onChange={(e) => setEditing({ ...editing, minutes: e.target.value })}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Acertos
-                  </span>
-                  <Input
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    value={editing.correct}
-                    onChange={(e) => setEditing({ ...editing, correct: e.target.value })}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Erros
-                  </span>
-                  <Input
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    value={editing.wrong}
-                    onChange={(e) => setEditing({ ...editing, wrong: e.target.value })}
-                  />
-                </label>
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2 text-sm">
-                <span className="text-muted-foreground">
-                  {editAnswered} questão(ões) · aproveitamento
-                </span>
-                {editAccuracy === null ? (
-                  <span className="text-muted-foreground">-</span>
-                ) : (
-                  <span
-                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass(editAccuracy)}`}
-                  >
-                    {editAccuracy.toFixed(0)}%
-                  </span>
-                )}
-              </div>
+              <p className="rounded-xl bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                Registros originais: {editing.sources.join(", ")}
+              </p>
             </div>
           )}
           <DialogFooter>
