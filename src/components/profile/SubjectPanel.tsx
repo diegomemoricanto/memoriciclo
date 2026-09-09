@@ -22,38 +22,22 @@ function badgeClass(pct: number) {
 }
 
 export function SubjectPanel() {
-  const { studyLogs, subjects, savedPlans } = useStudyState();
+  const { studyLogs, subjects, savedPlans, topicAliases } = useStudyState();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<{
     subjectId: string;
-    topicKey: string;
+    sources: string[];
     label: string;
-    hours: string;
-    minutes: string;
-    correct: string;
-    wrong: string;
   } | null>(null);
   const [removing, setRemoving] = useState<{
     subjectId: string;
-    topicKey: string;
+    sources: string[];
     label: string;
   } | null>(null);
 
-  const editCorrect = Math.max(0, Number(editing?.correct || 0));
-  const editWrong = Math.max(0, Number(editing?.wrong || 0));
-  const editAnswered = editCorrect + editWrong;
-  const editAccuracy = editAnswered ? (editCorrect / editAnswered) * 100 : null;
-
   const saveEdit = () => {
     if (!editing) return;
-    const seconds =
-      Math.max(0, Number(editing.hours || 0)) * 3600 + Math.max(0, Number(editing.minutes || 0)) * 60;
-    updateTopicGroup(editing.subjectId, editing.topicKey, {
-      label: editing.label,
-      seconds,
-      correct: editCorrect,
-      wrong: editWrong,
-    });
+    renameTopicGroup(editing.subjectId, editing.sources, editing.label);
     setEditing(null);
   };
 
