@@ -298,6 +298,7 @@ export async function insertRemoteStudyLog(userId: string, planId: string | null
     user_id: userId,
     plan_id: planId,
     subject_id: log.subjectId,
+    session_id: log.sessionId ?? null,
     studied_at: log.date,
     duration_seconds: log.durationSeconds,
     topic: log.topic ?? null,
@@ -305,6 +306,7 @@ export async function insertRemoteStudyLog(userId: string, planId: string | null
     questions_correct: log.questionsCorrect ?? null,
     questions_wrong: log.questionsWrong ?? null,
     }),
+
     "study_logs.insert",
   );
 }
