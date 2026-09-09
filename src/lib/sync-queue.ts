@@ -83,23 +83,7 @@ function keyOf(op: PendingOp) {
 }
 
 let notifiedFailure = false;
-const MAX_ATTEMPTS = 5;
 const attempts = new Map<string, number>();
-
-function labelOf(op: PendingOp) {
-  switch (op.kind) {
-    case "session":
-      return "progresso da sessão";
-    case "plan":
-      return "planejamento";
-    case "cycleReset":
-      return "reinício do ciclo";
-    case "mindMap":
-      return "mapa mental";
-    default:
-      return "registro de estudo";
-  }
-}
 
 export function enqueuePending(op: PendingOp, error?: unknown) {
   if (error) console.error("[sync] falha ao salvar, enfileirando", error);
@@ -109,7 +93,9 @@ export function enqueuePending(op: PendingOp, error?: unknown) {
   emit();
   if (!notifiedFailure) {
     notifiedFailure = true;
-    toast.error("Não foi possível salvar seu estudo agora, tentando novamente...");
+    toast.error(
+      "Seu registro ficou salvo apenas neste aparelho — ainda não foi sincronizado. Vamos continuar tentando.",
+    );
   }
   scheduleRetry();
 }
