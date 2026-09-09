@@ -29,6 +29,8 @@ export type CycleStats = { completedCycles: number };
 export type StudyLog = {
   id: string;
   subjectId: string;
+  /** sessão do ciclo que originou o registro (quando houver) */
+  sessionId?: string | null;
   date: string;
   durationSeconds: number;
   topic?: string | null;
@@ -36,6 +38,7 @@ export type StudyLog = {
   questionsCorrect?: number | null;
   questionsWrong?: number | null;
 };
+
 
 export const SUBJECT_PALETTE = [
   "#FFC9A8",
