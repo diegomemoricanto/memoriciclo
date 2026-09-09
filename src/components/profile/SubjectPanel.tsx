@@ -192,11 +192,11 @@ export function SubjectPanel() {
                               type="button"
                               aria-label={`Editar ${t.label}`}
                               onClick={() =>
-                                 setEditing({
-                                   subjectId: r.subject.id,
-                                   sources: t.sources,
-                                   label: t.label,
-                                 })
+                                setEditing({
+                                  subjectId: r.subject.id,
+                                  sources: t.sources,
+                                  label: t.label,
+                                })
                               }
                               className="text-muted-foreground transition-colors hover:text-foreground"
                             >
@@ -206,11 +206,11 @@ export function SubjectPanel() {
                               type="button"
                               aria-label={`Excluir ${t.label}`}
                               onClick={() =>
-                                 setRemoving({
-                                   subjectId: r.subject.id,
-                                   sources: t.sources,
-                                   label: t.label,
-                                 })
+                                setRemoving({
+                                  subjectId: r.subject.id,
+                                  sources: t.sources,
+                                  label: t.label,
+                                })
                               }
                               className="text-muted-foreground transition-colors hover:text-destructive"
                             >

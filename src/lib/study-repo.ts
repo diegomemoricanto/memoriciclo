@@ -130,11 +130,7 @@ export async function upsertRemoteTopicAlias(
 }
 
 /** remove o apelido, voltando a exibir o nome original do assunto */
-export async function deleteRemoteTopicAlias(
-  userId: string,
-  subjectId: string,
-  sourceKey: string,
-) {
+export async function deleteRemoteTopicAlias(userId: string, subjectId: string, sourceKey: string) {
   check(
     await supabase
       .from("topic_aliases")
