@@ -87,6 +87,8 @@ function keyOf(op: PendingOp) {
       return `cycleReset:${op.planId}`;
     case "mindMap":
       return `mindMap:${op.scope}:${op.refId}`;
+    case "topicAlias":
+      return `topicAlias:${op.subjectId}:${op.sourceKey}`;
     default:
       return `studyLog:${op.log.id}`;
   }
