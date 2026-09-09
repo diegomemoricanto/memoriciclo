@@ -102,7 +102,48 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
     subjectMindMaps: Object.fromEntries(
       (maps.data ?? []).map((m) => [m.ref_id, m.data as unknown as MindNode]),
     ),
+    topicAliases: Object.fromEntries(
+      (aliases.data ?? []).map((a) => [aliasKey(a.subject_id, a.source_key), a.display_label]),
+    ),
   };
+}
+
+/** grava (ou atualiza) o apelido de exibição de um assunto — não toca nos registros */
+export async function upsertRemoteTopicAlias(
+  userId: string,
+  subjectId: string,
+  sourceKey: string,
+  displayLabel: string,
+) {
+  check(
+    await supabase.from("topic_aliases").upsert(
+      {
+        user_id: userId,
+        subject_id: subjectId,
+        source_key: sourceKey,
+        display_label: displayLabel,
+      },
+      { onConflict: "user_id,subject_id,source_key" },
+    ),
+    "topic_aliases.upsert",
+  );
+}
+
+/** remove o apelido, voltando a exibir o nome original do assunto */
+export async function deleteRemoteTopicAlias(
+  userId: string,
+  subjectId: string,
+  sourceKey: string,
+) {
+  check(
+    await supabase
+      .from("topic_aliases")
+      .delete()
+      .eq("user_id", userId)
+      .eq("subject_id", subjectId)
+      .eq("source_key", sourceKey),
+    "topic_aliases.delete",
+  );
 }
 
 /**
