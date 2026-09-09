@@ -17,7 +17,11 @@ export type RemoteStudyData = {
   activePlanId: string | null;
   studyLogs: StudyLog[];
   subjectMindMaps: Record<string, MindNode>;
+  /** apelidos de exibição de assuntos: `${subjectId}::${chaveOriginal}` -> rótulo */
+  topicAliases: Record<string, string>;
 };
+
+export const aliasKey = (subjectId: string, sourceKey: string) => `${subjectId}::${sourceKey}`;
 
 const nullish = <T>(v: T | null | undefined, fallback: T) =>
   v === null || v === undefined ? fallback : v;
