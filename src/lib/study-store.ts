@@ -163,6 +163,9 @@ export function savePlanAndActivate(args: {
     cycleStats,
   };
 
+  /* sessões novas: nenhum cronômetro salvo do ciclo anterior pode ser reaproveitado */
+  clearAllPersistedTimers();
+
   state = projectActive({
     ...state,
     activePlanId: id,
@@ -174,12 +177,14 @@ export function savePlanAndActivate(args: {
 
   const uidNow = userId();
   if (uidNow) {
-    void saveRemotePlan(uidNow, entry).catch((error) =>
+    const protectedSubjects = [...new Set(state.studyLogs.map((l) => l.subjectId))];
+    void saveRemotePlan(uidNow, entry, protectedSubjects).catch((error) =>
       enqueuePending({ kind: "plan", id: entry.id, entry }, error),
     );
   }
   return id;
 }
+
 
 export function openPlan(id: string) {
   if (!state.savedPlans.some((p) => p.id === id)) return;
