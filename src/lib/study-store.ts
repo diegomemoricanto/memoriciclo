@@ -56,6 +56,7 @@ const empty: StudyState = {
   savedPlans: [],
   activePlanId: null,
   subjectMindMaps: {},
+  topicAliases: {},
   loading: true,
   pendingSync: [],
 };
