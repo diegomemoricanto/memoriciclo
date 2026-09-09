@@ -18,6 +18,7 @@ import { signOut, uploadAvatar, useAuth } from "@/lib/auth-store";
 import { AccountDialog } from "@/components/profile/AccountDialog";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { SyncStatus } from "@/components/study/SyncStatus";
 
 function NotFoundComponent() {
   return (
