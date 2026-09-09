@@ -4,19 +4,22 @@ import { uid } from "./study-types";
 import type { MindNode } from "./mindmap-types";
 import { getAuth, onUserChange } from "./auth-store";
 import {
+  aliasKey,
   deleteRemotePlan,
   deleteRemoteMindMap,
   deleteRemoteStudyLogs,
+  deleteRemoteTopicAlias,
   insertRemoteStudyLog,
   loadStudyData,
   resetRemoteCycle,
   saveRemotePlan,
   setRemoteActivePlan,
-  updateRemoteStudyLog,
   updateRemoteSession,
   upsertRemoteMindMap,
+  upsertRemoteTopicAlias,
   type SavedPlan,
 } from "./study-repo";
+import { topicKeyOf } from "./topic-stats";
 import {
   enqueuePending,
   flushPending,
