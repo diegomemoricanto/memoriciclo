@@ -369,12 +369,9 @@ function DashboardInner() {
           <TimerDialog
             session={activeSession}
             subject={subjectById[activeSession.subjectId]}
-            onClose={(total, delta, questions) =>
-              savePartial(activeSession, total, delta, questions)
-            }
-            onFinish={(total, delta, questions) =>
-              finishSession(activeSession, total, delta, questions)
-            }
+            onClose={(result) => wrapUp(activeSession, result, false)}
+            onFinish={(result) => wrapUp(activeSession, result, true)}
+
             onTick={handleTick}
           />
         </ErrorBoundary>
