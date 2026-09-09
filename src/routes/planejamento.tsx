@@ -91,8 +91,19 @@ function DashboardInner() {
   const openSession = (id: string) => {
     const session = sessions.find((s) => s.id === id);
     if (!session || session.completed) return;
-    setLiveSeconds(session.studiedSeconds);
-    setActiveId(id);
+    void acquireSessionLock(userId, id).then((lock) => {
+      if (!lock.ok) {
+        toast.error(
+          lock.reason === "tab"
+            ? "Já existe uma sessão de estudo em andamento em outra aba deste navegador."
+            : "Já existe uma sessão de estudo em andamento em outro aparelho.",
+          { description: "Encerre a sessão lá antes de iniciar outra por aqui." },
+        );
+        return;
+      }
+      setLiveSeconds(session.studiedSeconds);
+      setActiveId(id);
+    });
   };
 
   /** encerramento único: grava o log (matéria + assunto + questões) e o progresso da sessão */
@@ -105,6 +116,7 @@ function DashboardInner() {
       studiedSeconds: result.totalSeconds,
       completed: complete || session.completed,
     });
+    void releaseSessionLock(userId);
     setActiveId(null);
     setLiveSeconds(null);
   };
