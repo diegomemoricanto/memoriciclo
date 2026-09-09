@@ -322,6 +322,39 @@ export type Database = {
         }
         Relationships: []
       }
+      study_session_locks: {
+        Row: {
+          created_at: string
+          heartbeat_at: string
+          holder_id: string
+          plan_id: string | null
+          session_id: string | null
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          heartbeat_at?: string
+          holder_id: string
+          plan_id?: string | null
+          session_id?: string | null
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          heartbeat_at?: string
+          holder_id?: string
+          plan_id?: string | null
+          session_id?: string | null
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subject_topics: {
         Row: {
           created_at: string
