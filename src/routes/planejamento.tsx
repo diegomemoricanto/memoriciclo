@@ -109,7 +109,6 @@ function DashboardInner() {
     setLiveSeconds(null);
   };
 
-
   const handleTick = useCallback((total: number) => setLiveSeconds(total), []);
 
   const addManual = (session: Session, entry: ManualEntry) => {

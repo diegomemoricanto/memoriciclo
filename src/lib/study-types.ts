@@ -39,7 +39,6 @@ export type StudyLog = {
   questionsWrong?: number | null;
 };
 
-
 export const SUBJECT_PALETTE = [
   "#FFC9A8",
   "#9EE6CF",
@@ -79,7 +78,6 @@ export function subjectSessionDurations(subject: Subject) {
   const grid = Math.max(SESSION_INCREMENT, Math.ceil(min / SESSION_INCREMENT) * SESSION_INCREMENT);
   return { options: [grid], tooShort: true };
 }
-
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 

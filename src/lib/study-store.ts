@@ -27,7 +27,6 @@ import {
 } from "./sync-queue";
 import { clearAllPersistedTimers } from "./timer-persistence";
 
-
 export type { SavedPlan };
 
 export type StudyState = {
@@ -187,7 +186,6 @@ export function savePlanAndActivate(args: {
   return id;
 }
 
-
 export function openPlan(id: string) {
   if (!state.savedPlans.some((p) => p.id === id)) return;
   state = projectActive({ ...state, activePlanId: id });
@@ -249,7 +247,6 @@ export function addStudyLog(
     );
   }
 }
-
 
 export function updateSession(id: string, patch: Partial<Session>) {
   return updateSessionInternal(id, patch);
@@ -335,7 +332,6 @@ export function restartCycle() {
   const completedCycles = state.cycleStats.completedCycles + 1;
   clearAllPersistedTimers();
   setState({
-
     sessions: state.sessions.map((s) => ({ ...s, studiedSeconds: 0, completed: false })),
     cycleStats: { completedCycles },
   });
