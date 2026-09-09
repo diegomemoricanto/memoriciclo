@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Table2, Trash2 } from "lucide-react";
-import { deleteTopicGroup, updateTopicGroup, useStudyState } from "@/lib/study-store";
+import { deleteTopicGroup, renameTopicGroup, useStudyState } from "@/lib/study-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,38 +22,22 @@ function badgeClass(pct: number) {
 }
 
 export function SubjectPanel() {
-  const { studyLogs, subjects, savedPlans } = useStudyState();
+  const { studyLogs, subjects, savedPlans, topicAliases } = useStudyState();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<{
     subjectId: string;
-    topicKey: string;
+    sources: string[];
     label: string;
-    hours: string;
-    minutes: string;
-    correct: string;
-    wrong: string;
   } | null>(null);
   const [removing, setRemoving] = useState<{
     subjectId: string;
-    topicKey: string;
+    sources: string[];
     label: string;
   } | null>(null);
 
-  const editCorrect = Math.max(0, Number(editing?.correct || 0));
-  const editWrong = Math.max(0, Number(editing?.wrong || 0));
-  const editAnswered = editCorrect + editWrong;
-  const editAccuracy = editAnswered ? (editCorrect / editAnswered) * 100 : null;
-
   const saveEdit = () => {
     if (!editing) return;
-    const seconds =
-      Math.max(0, Number(editing.hours || 0)) * 3600 + Math.max(0, Number(editing.minutes || 0)) * 60;
-    updateTopicGroup(editing.subjectId, editing.topicKey, {
-      label: editing.label,
-      seconds,
-      correct: editCorrect,
-      wrong: editWrong,
-    });
+    renameTopicGroup(editing.subjectId, editing.sources, editing.label);
     setEditing(null);
   };
 
@@ -76,11 +60,18 @@ export function SubjectPanel() {
           wrong,
           total,
           accuracy: total ? (correct / total) * 100 : null,
-          topics: topicBreakdown(logs),
+          topics: topicBreakdown(
+            logs,
+            Object.fromEntries(
+              Object.entries(topicAliases)
+                .filter(([k]) => k.startsWith(`${s.id}::`))
+                .map(([k, v]) => [k.slice(s.id.length + 2), v]),
+            ),
+          ),
         };
       })
       .sort((a, b) => a.subject.name.localeCompare(b.subject.name, "pt-BR"));
-  }, [studyLogs, subjects, savedPlans]);
+  }, [studyLogs, subjects, savedPlans, topicAliases]);
 
   return (
     <section className="rounded-2xl bg-card p-5 shadow-soft">
@@ -203,12 +194,8 @@ export function SubjectPanel() {
                               onClick={() =>
                                 setEditing({
                                   subjectId: r.subject.id,
-                                  topicKey: t.key,
+                                  sources: t.sources,
                                   label: t.label,
-                                  hours: String(Math.floor(t.seconds / 3600)),
-                                  minutes: String(Math.floor((t.seconds % 3600) / 60)),
-                                  correct: String(t.correct),
-                                  wrong: String(t.wrong),
                                 })
                               }
                               className="text-muted-foreground transition-colors hover:text-foreground"
@@ -221,7 +208,7 @@ export function SubjectPanel() {
                               onClick={() =>
                                 setRemoving({
                                   subjectId: r.subject.id,
-                                  topicKey: t.key,
+                                  sources: t.sources,
                                   label: t.label,
                                 })
                               }
@@ -243,16 +230,17 @@ export function SubjectPanel() {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar assunto</DialogTitle>
+            <DialogTitle>Renomear assunto</DialogTitle>
             <DialogDescription>
-              As alterações recalculam os totais da disciplina automaticamente.
+              O novo nome muda apenas a forma de exibir. Nenhum registro de estudo é alterado,
+              somado ou apagado — dois nomes iguais passam a aparecer juntos.
             </DialogDescription>
           </DialogHeader>
           {editing && (
             <div className="space-y-4">
               <label className="block text-sm">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Nome do assunto
+                  Nome exibido
                 </span>
                 <Input
                   className="mt-1"
@@ -260,71 +248,9 @@ export function SubjectPanel() {
                   onChange={(e) => setEditing({ ...editing, label: e.target.value })}
                 />
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Horas
-                  </span>
-                  <Input
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    value={editing.hours}
-                    onChange={(e) => setEditing({ ...editing, hours: e.target.value })}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Minutos
-                  </span>
-                  <Input
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    max={59}
-                    value={editing.minutes}
-                    onChange={(e) => setEditing({ ...editing, minutes: e.target.value })}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Acertos
-                  </span>
-                  <Input
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    value={editing.correct}
-                    onChange={(e) => setEditing({ ...editing, correct: e.target.value })}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Erros
-                  </span>
-                  <Input
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    value={editing.wrong}
-                    onChange={(e) => setEditing({ ...editing, wrong: e.target.value })}
-                  />
-                </label>
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2 text-sm">
-                <span className="text-muted-foreground">
-                  {editAnswered} questão(ões) · aproveitamento
-                </span>
-                {editAccuracy === null ? (
-                  <span className="text-muted-foreground">-</span>
-                ) : (
-                  <span
-                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass(editAccuracy)}`}
-                  >
-                    {editAccuracy.toFixed(0)}%
-                  </span>
-                )}
-              </div>
+              <p className="rounded-xl bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                Registros originais: {editing.sources.join(", ")}
+              </p>
             </div>
           )}
           <DialogFooter>
@@ -353,7 +279,7 @@ export function SubjectPanel() {
             <Button
               variant="destructive"
               onClick={() => {
-                if (removing) deleteTopicGroup(removing.subjectId, removing.topicKey);
+                if (removing) deleteTopicGroup(removing.subjectId, removing.sources);
                 setRemoving(null);
               }}
             >

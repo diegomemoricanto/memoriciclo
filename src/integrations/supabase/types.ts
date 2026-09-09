@@ -429,6 +429,36 @@ export type Database = {
           },
         ]
       }
+      topic_aliases: {
+        Row: {
+          created_at: string
+          display_label: string
+          id: string
+          source_key: string
+          subject_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_label: string
+          id?: string
+          source_key: string
+          subject_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          display_label?: string
+          id?: string
+          source_key?: string
+          subject_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       topic_images: {
         Row: {
           created_at: string

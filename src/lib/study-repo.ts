@@ -17,7 +17,11 @@ export type RemoteStudyData = {
   activePlanId: string | null;
   studyLogs: StudyLog[];
   subjectMindMaps: Record<string, MindNode>;
+  /** apelidos de exibição de assuntos: `${subjectId}::${chaveOriginal}` -> rótulo */
+  topicAliases: Record<string, string>;
 };
+
+export const aliasKey = (subjectId: string, sourceKey: string) => `${subjectId}::${sourceKey}`;
 
 const nullish = <T>(v: T | null | undefined, fallback: T) =>
   v === null || v === undefined ? fallback : v;
@@ -29,7 +33,7 @@ function check(result: { error: { message: string } | null }, op: string) {
 
 /** carrega todo o estado de estudos do usuário logado */
 export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
-  const [plans, settings, subjects, sessions, stats, logs, maps] = await Promise.all([
+  const [plans, settings, subjects, sessions, stats, logs, maps, aliases] = await Promise.all([
     supabase.from("saved_plans").select("*").eq("user_id", userId).order("created_at"),
     supabase.from("plan_settings").select("*").eq("user_id", userId),
     supabase.from("subjects").select("*").eq("user_id", userId).order("position"),
@@ -37,6 +41,7 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
     supabase.from("cycle_stats").select("*").eq("user_id", userId),
     supabase.from("study_logs").select("*").eq("user_id", userId).order("studied_at"),
     supabase.from("mind_maps").select("*").eq("user_id", userId).eq("scope", "subject"),
+    supabase.from("topic_aliases").select("*").eq("user_id", userId),
   ]);
 
   const savedPlans: SavedPlan[] = (plans.data ?? []).map((p) => {
@@ -97,7 +102,44 @@ export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
     subjectMindMaps: Object.fromEntries(
       (maps.data ?? []).map((m) => [m.ref_id, m.data as unknown as MindNode]),
     ),
+    topicAliases: Object.fromEntries(
+      (aliases.data ?? []).map((a) => [aliasKey(a.subject_id, a.source_key), a.display_label]),
+    ),
   };
+}
+
+/** grava (ou atualiza) o apelido de exibição de um assunto — não toca nos registros */
+export async function upsertRemoteTopicAlias(
+  userId: string,
+  subjectId: string,
+  sourceKey: string,
+  displayLabel: string,
+) {
+  check(
+    await supabase.from("topic_aliases").upsert(
+      {
+        user_id: userId,
+        subject_id: subjectId,
+        source_key: sourceKey,
+        display_label: displayLabel,
+      },
+      { onConflict: "user_id,subject_id,source_key" },
+    ),
+    "topic_aliases.upsert",
+  );
+}
+
+/** remove o apelido, voltando a exibir o nome original do assunto */
+export async function deleteRemoteTopicAlias(userId: string, subjectId: string, sourceKey: string) {
+  check(
+    await supabase
+      .from("topic_aliases")
+      .delete()
+      .eq("user_id", userId)
+      .eq("subject_id", subjectId)
+      .eq("source_key", sourceKey),
+    "topic_aliases.delete",
+  );
 }
 
 /**

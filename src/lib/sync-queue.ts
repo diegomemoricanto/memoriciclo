@@ -2,11 +2,13 @@ import { toast } from "sonner";
 import type { Session, StudyLog } from "./study-types";
 import type { SavedPlan } from "./study-repo";
 import {
+  deleteRemoteTopicAlias,
   insertRemoteStudyLog,
   resetRemoteCycle,
   saveRemotePlan,
   updateRemoteSession,
   upsertRemoteMindMap,
+  upsertRemoteTopicAlias,
 } from "./study-repo";
 import type { MindNode } from "./mindmap-types";
 
@@ -27,6 +29,14 @@ export type PendingOp =
       scope: "topic" | "subject";
       refId: string;
       data: MindNode;
+    }
+  | {
+      kind: "topicAlias";
+      id: string;
+      subjectId: string;
+      sourceKey: string;
+      /** null = remover o apelido e voltar ao nome original */
+      label: string | null;
     };
 
 const STORAGE_KEY = "pendingSync";
@@ -77,6 +87,8 @@ function keyOf(op: PendingOp) {
       return `cycleReset:${op.planId}`;
     case "mindMap":
       return `mindMap:${op.scope}:${op.refId}`;
+    case "topicAlias":
+      return `topicAlias:${op.subjectId}:${op.sourceKey}`;
     default:
       return `studyLog:${op.log.id}`;
   }
@@ -112,6 +124,10 @@ async function run(op: PendingOp, userId: string) {
       return resetRemoteCycle(userId, op.planId, op.completedCycles);
     case "mindMap":
       return upsertRemoteMindMap(userId, op.scope, op.refId, op.data);
+    case "topicAlias":
+      return op.label === null
+        ? deleteRemoteTopicAlias(userId, op.subjectId, op.sourceKey)
+        : upsertRemoteTopicAlias(userId, op.subjectId, op.sourceKey, op.label);
   }
 }
 

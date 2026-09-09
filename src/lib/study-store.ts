@@ -4,19 +4,22 @@ import { uid } from "./study-types";
 import type { MindNode } from "./mindmap-types";
 import { getAuth, onUserChange } from "./auth-store";
 import {
+  aliasKey,
   deleteRemotePlan,
   deleteRemoteMindMap,
   deleteRemoteStudyLogs,
+  deleteRemoteTopicAlias,
   insertRemoteStudyLog,
   loadStudyData,
   resetRemoteCycle,
   saveRemotePlan,
   setRemoteActivePlan,
-  updateRemoteStudyLog,
   updateRemoteSession,
   upsertRemoteMindMap,
+  upsertRemoteTopicAlias,
   type SavedPlan,
 } from "./study-repo";
+import { topicKeyOf } from "./topic-stats";
 import {
   enqueuePending,
   flushPending,
@@ -38,6 +41,8 @@ export type StudyState = {
   savedPlans: SavedPlan[];
   activePlanId: string | null;
   subjectMindMaps: Record<string, MindNode>;
+  /** apelidos de exibição de assuntos: `${subjectId}::${chaveOriginal}` -> rótulo */
+  topicAliases: Record<string, string>;
   loading: boolean;
   pendingSync: PendingOp[];
 };
@@ -51,6 +56,7 @@ const empty: StudyState = {
   savedPlans: [],
   activePlanId: null,
   subjectMindMaps: {},
+  topicAliases: {},
   loading: true,
   pendingSync: [],
 };
@@ -255,46 +261,49 @@ export function updateSession(id: string, patch: Partial<Session>) {
   return updateSessionInternal(id, patch);
 }
 
-/** encontra os logs de um grupo disciplina + tópico */
-function topicGroupLogs(subjectId: string, topicKey: string) {
-  return state.studyLogs.filter(
-    (l) => l.subjectId === subjectId && (l.topic?.trim() || "Geral") === topicKey,
-  );
+/** encontra os logs de um grupo disciplina + assunto(s) originais */
+function topicGroupLogs(subjectId: string, sourceKeys: string[]) {
+  const keys = new Set(sourceKeys);
+  return state.studyLogs.filter((l) => l.subjectId === subjectId && keys.has(topicKeyOf(l)));
 }
 
-/** edita um assunto (grupo de logs): consolida no primeiro log e remove os demais */
-export function updateTopicGroup(
-  subjectId: string,
-  topicKey: string,
-  next: { label: string; seconds: number; correct: number; wrong: number },
-) {
-  const group = topicGroupLogs(subjectId, topicKey);
-  if (group.length === 0) return;
-  const [keep, ...rest] = group;
-  const label = next.label.trim();
-  const patch = {
-    topic: label && label !== "Geral" ? label : null,
-    durationSeconds: Math.max(0, Math.round(next.seconds)),
-    questionsCorrect: Math.max(0, Math.round(next.correct)),
-    questionsWrong: Math.max(0, Math.round(next.wrong)),
-    questionsTotal: Math.max(0, Math.round(next.correct)) + Math.max(0, Math.round(next.wrong)),
-  };
-  const removed = new Set(rest.map((l) => l.id));
-  setState({
-    studyLogs: state.studyLogs
-      .filter((l) => !removed.has(l.id))
-      .map((l) => (l.id === keep!.id ? { ...l, ...patch } : l)),
-  });
+/**
+ * renomeia/agrupa um assunto apenas para exibição: grava um apelido por chave original.
+ * Nenhum registro histórico é alterado, fundido ou apagado.
+ */
+export function renameTopicGroup(subjectId: string, sourceKeys: string[], label: string) {
+  const next = label.trim();
+  if (!next || sourceKeys.length === 0) return;
+  const aliases = { ...state.topicAliases };
   const uidNow = userId();
-  if (uidNow) {
-    void updateRemoteStudyLog(uidNow, keep!.id, patch).catch(() => undefined);
-    void deleteRemoteStudyLogs(uidNow, [...removed]).catch(() => undefined);
+  for (const source of sourceKeys) {
+    const key = aliasKey(subjectId, source);
+    if (next === source) {
+      delete aliases[key];
+      if (uidNow)
+        void deleteRemoteTopicAlias(uidNow, subjectId, source).catch((error) =>
+          enqueuePending(
+            { kind: "topicAlias", id: key, subjectId, sourceKey: source, label: null },
+            error,
+          ),
+        );
+    } else {
+      aliases[key] = next;
+      if (uidNow)
+        void upsertRemoteTopicAlias(uidNow, subjectId, source, next).catch((error) =>
+          enqueuePending(
+            { kind: "topicAlias", id: key, subjectId, sourceKey: source, label: next },
+            error,
+          ),
+        );
+    }
   }
+  setState({ topicAliases: aliases });
 }
 
-/** exclui todos os registros de um assunto de uma disciplina */
-export function deleteTopicGroup(subjectId: string, topicKey: string) {
-  const group = topicGroupLogs(subjectId, topicKey);
+/** exclui todos os registros de um assunto de uma disciplina (ação explícita do usuário) */
+export function deleteTopicGroup(subjectId: string, sourceKeys: string[]) {
+  const group = topicGroupLogs(subjectId, sourceKeys);
   if (group.length === 0) return;
   const removed = new Set(group.map((l) => l.id));
   setState({ studyLogs: state.studyLogs.filter((l) => !removed.has(l.id)) });
