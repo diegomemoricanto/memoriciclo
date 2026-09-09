@@ -212,6 +212,7 @@ export function addStudyLog(
   subjectId: string,
   durationSeconds: number,
   questions?: QuestionsEntry,
+  meta?: { sessionId?: string | null; startedAt?: string | null },
 ) {
   const hasQuestions =
     !!questions &&
@@ -222,7 +223,10 @@ export function addStudyLog(
   const log: StudyLog = {
     id: uid(),
     subjectId,
-    date: new Date().toISOString(),
+    sessionId: meta?.sessionId ?? null,
+    /* a data do registro é o INÍCIO do estudo, para que sessões que atravessam
+       a meia-noite não distorçam médias e constância */
+    date: meta?.startedAt ?? new Date().toISOString(),
     durationSeconds,
     topic: questions?.topic?.trim() ? questions.topic.trim() : null,
     questionsTotal: questions?.total ?? null,
@@ -238,6 +242,7 @@ export function addStudyLog(
     );
   }
 }
+
 
 export function updateSession(id: string, patch: Partial<Session>) {
   return updateSessionInternal(id, patch);
