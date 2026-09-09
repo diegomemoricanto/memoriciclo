@@ -65,16 +65,18 @@ export function subjectRange(subject: Subject) {
 
 /**
  * Durações válidas (múltiplos de 30min) dentro do intervalo [mín, máx] da disciplina.
- * Se nenhum incremento padrão couber, usa o maior múltiplo de 30 que não estoure o
- * máximo; se nem isso for possível, usa o próprio máximo (`tooShort = true`).
+ * Se nenhum incremento padrão couber no intervalo, usa o menor múltiplo de 30 que
+ * ainda respeita o mínimo (podendo passar do máximo configurado) e marca
+ * `tooShort = true` para o app avisar que o intervalo é curto demais.
  */
 export function subjectSessionDurations(subject: Subject) {
   const { min, max } = subjectRange(subject);
   const options = SESSION_OPTIONS.filter((m) => m >= min && m <= max);
   if (options.length) return { options, tooShort: false };
-  const fallback = Math.floor(max / SESSION_INCREMENT) * SESSION_INCREMENT;
-  return { options: [fallback > 0 ? fallback : max], tooShort: true };
+  const grid = Math.max(SESSION_INCREMENT, Math.ceil(min / SESSION_INCREMENT) * SESSION_INCREMENT);
+  return { options: [grid], tooShort: true };
 }
+
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
