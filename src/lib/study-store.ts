@@ -333,7 +333,9 @@ function updateSessionInternal(id: string, patch: Partial<Session>) {
 
 export function restartCycle() {
   const completedCycles = state.cycleStats.completedCycles + 1;
+  clearAllPersistedTimers();
   setState({
+
     sessions: state.sessions.map((s) => ({ ...s, studiedSeconds: 0, completed: false })),
     cycleStats: { completedCycles },
   });
