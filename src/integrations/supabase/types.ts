@@ -288,6 +288,7 @@ export type Database = {
           questions_correct: number | null
           questions_total: number | null
           questions_wrong: number | null
+          session_id: string | null
           studied_at: string
           subject_id: string
           topic: string | null
@@ -300,6 +301,7 @@ export type Database = {
           questions_correct?: number | null
           questions_total?: number | null
           questions_wrong?: number | null
+          session_id?: string | null
           studied_at?: string
           subject_id: string
           topic?: string | null
@@ -312,6 +314,7 @@ export type Database = {
           questions_correct?: number | null
           questions_total?: number | null
           questions_wrong?: number | null
+          session_id?: string | null
           studied_at?: string
           subject_id?: string
           topic?: string | null
