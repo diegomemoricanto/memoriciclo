@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-store";
+import {
+  LOCK_HEARTBEAT_MS,
+  acquireSessionLock,
+  heartbeatSessionLock,
+  releaseSessionLock,
+} from "@/lib/session-lock";
 import {
   Calendar,
   Check,
