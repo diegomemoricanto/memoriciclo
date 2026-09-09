@@ -54,8 +54,7 @@ function writeLocal(lock: LocalLock | null) {
 }
 
 export type LockResult =
-  | { ok: true }
-  | { ok: false; reason: "tab" | "device"; sessionId: string | null };
+  { ok: true } | { ok: false; reason: "tab" | "device"; sessionId: string | null };
 
 /** tenta assumir a trava para esta aba; falha se outra instância está estudando agora */
 export async function acquireSessionLock(
