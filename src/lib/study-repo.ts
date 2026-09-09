@@ -33,7 +33,7 @@ function check(result: { error: { message: string } | null }, op: string) {
 
 /** carrega todo o estado de estudos do usuário logado */
 export async function loadStudyData(userId: string): Promise<RemoteStudyData> {
-  const [plans, settings, subjects, sessions, stats, logs, maps] = await Promise.all([
+  const [plans, settings, subjects, sessions, stats, logs, maps, aliases] = await Promise.all([
     supabase.from("saved_plans").select("*").eq("user_id", userId).order("created_at"),
     supabase.from("plan_settings").select("*").eq("user_id", userId),
     supabase.from("subjects").select("*").eq("user_id", userId).order("position"),
