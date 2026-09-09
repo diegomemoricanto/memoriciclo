@@ -87,6 +87,20 @@ function DashboardInner() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [liveSeconds, setLiveSeconds] = useState<number | null>(null);
+  const { userId } = useAuth();
+
+  /* mantém a trava viva enquanto o cronômetro está aberto e a libera ao sair */
+  useEffect(() => {
+    if (!activeId) return;
+    void heartbeatSessionLock(userId, activeId);
+    const t = setInterval(() => void heartbeatSessionLock(userId, activeId), LOCK_HEARTBEAT_MS);
+    const release = () => void releaseSessionLock(userId);
+    window.addEventListener("pagehide", release);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("pagehide", release);
+    };
+  }, [activeId, userId]);
 
   const subjectById = useMemo(() => Object.fromEntries(subjects.map((s) => [s.id, s])), [subjects]);
 
