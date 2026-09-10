@@ -68,7 +68,12 @@ export function QuizBlock({ topicName, quiz, busy, onUpload, onRemove }: Props) 
             {opening ? <Loader2 className="animate-spin" /> : <Play />} Abrir quiz
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={busy}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+        >
           {busy ? <Loader2 className="animate-spin" /> : <FileUp />}
           {quiz ? "Substituir" : "Enviar HTML"}
         </Button>
