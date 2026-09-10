@@ -19,6 +19,7 @@ import { AccountDialog } from "@/components/profile/AccountDialog";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { SyncStatus } from "@/components/study/SyncStatus";
+import { HeaderActions } from "@/components/layout/HeaderActions";
 
 function NotFoundComponent() {
   return (
@@ -183,6 +184,7 @@ function RootComponent() {
             </Link>
             <div className="ml-auto flex items-center gap-3">
               <SyncStatus />
+              <HeaderActions />
               <UserMenu />
             </div>
           </nav>
