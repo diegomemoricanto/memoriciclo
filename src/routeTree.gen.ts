@@ -18,9 +18,10 @@ import { Route as PlanejamentoRouteImport } from './routes/planejamento'
 import { Route as PlanejamentosRouteImport } from './routes/planejamentos'
 import { Route as MapasMentaisIndexRouteImport } from './routes/mapas-mentais.index'
 import { Route as QuizIndexRouteImport } from './routes/quiz.index'
-import { Route as QuizSubjectIdRouteImport } from './routes/quiz.$subjectId'
 import { Route as MapasMentaisSubjectIdIndexRouteImport } from './routes/mapas-mentais.$subjectId.index'
 import { Route as MapasMentaisSubjectIdTopicIdRouteImport } from './routes/mapas-mentais.$subjectId.$topicId'
+import { Route as QuizSubjectIdIndexRouteImport } from './routes/quiz.$subjectId.index'
+import { Route as QuizSubjectIdTopicIdRouteImport } from './routes/quiz.$subjectId.$topicId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -67,11 +68,6 @@ const QuizIndexRoute = QuizIndexRouteImport.update({
   path: '/quiz/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const QuizSubjectIdRoute = QuizSubjectIdRouteImport.update({
-  id: '/quiz/$subjectId',
-  path: '/quiz/$subjectId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MapasMentaisSubjectIdIndexRoute =
   MapasMentaisSubjectIdIndexRouteImport.update({
     id: '/mapas-mentais/$subjectId/',
@@ -84,6 +80,16 @@ const MapasMentaisSubjectIdTopicIdRoute =
     path: '/mapas-mentais/$subjectId/$topicId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const QuizSubjectIdIndexRoute = QuizSubjectIdIndexRouteImport.update({
+  id: '/quiz/$subjectId/',
+  path: '/quiz/$subjectId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuizSubjectIdTopicIdRoute = QuizSubjectIdTopicIdRouteImport.update({
+  id: '/quiz/$subjectId/$topicId',
+  path: '/quiz/$subjectId/$topicId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -93,11 +99,12 @@ export interface FileRoutesByFullPath {
   '/painel': typeof PainelRoute
   '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
-  '/quiz/$subjectId': typeof QuizSubjectIdRoute
   '/mapas-mentais/': typeof MapasMentaisIndexRoute
   '/quiz/': typeof QuizIndexRoute
   '/mapas-mentais/$subjectId/$topicId': typeof MapasMentaisSubjectIdTopicIdRoute
+  '/quiz/$subjectId/$topicId': typeof QuizSubjectIdTopicIdRoute
   '/mapas-mentais/$subjectId/': typeof MapasMentaisSubjectIdIndexRoute
+  '/quiz/$subjectId/': typeof QuizSubjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -107,11 +114,12 @@ export interface FileRoutesByTo {
   '/painel': typeof PainelRoute
   '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
-  '/quiz/$subjectId': typeof QuizSubjectIdRoute
   '/mapas-mentais': typeof MapasMentaisIndexRoute
   '/quiz': typeof QuizIndexRoute
   '/mapas-mentais/$subjectId/$topicId': typeof MapasMentaisSubjectIdTopicIdRoute
+  '/quiz/$subjectId/$topicId': typeof QuizSubjectIdTopicIdRoute
   '/mapas-mentais/$subjectId': typeof MapasMentaisSubjectIdIndexRoute
+  '/quiz/$subjectId': typeof QuizSubjectIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,11 +130,12 @@ export interface FileRoutesById {
   '/painel': typeof PainelRoute
   '/planejamento': typeof PlanejamentoRoute
   '/planejamentos': typeof PlanejamentosRoute
-  '/quiz/$subjectId': typeof QuizSubjectIdRoute
   '/mapas-mentais/': typeof MapasMentaisIndexRoute
   '/quiz/': typeof QuizIndexRoute
   '/mapas-mentais/$subjectId/$topicId': typeof MapasMentaisSubjectIdTopicIdRoute
+  '/quiz/$subjectId/$topicId': typeof QuizSubjectIdTopicIdRoute
   '/mapas-mentais/$subjectId/': typeof MapasMentaisSubjectIdIndexRoute
+  '/quiz/$subjectId/': typeof QuizSubjectIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -138,11 +147,12 @@ export interface FileRouteTypes {
     | '/painel'
     | '/planejamento'
     | '/planejamentos'
-    | '/quiz/$subjectId'
     | '/mapas-mentais/'
     | '/quiz/'
     | '/mapas-mentais/$subjectId/$topicId'
+    | '/quiz/$subjectId/$topicId'
     | '/mapas-mentais/$subjectId/'
+    | '/quiz/$subjectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -152,11 +162,12 @@ export interface FileRouteTypes {
     | '/painel'
     | '/planejamento'
     | '/planejamentos'
-    | '/quiz/$subjectId'
     | '/mapas-mentais'
     | '/quiz'
     | '/mapas-mentais/$subjectId/$topicId'
+    | '/quiz/$subjectId/$topicId'
     | '/mapas-mentais/$subjectId'
+    | '/quiz/$subjectId'
   id:
     | '__root__'
     | '/'
@@ -166,11 +177,12 @@ export interface FileRouteTypes {
     | '/painel'
     | '/planejamento'
     | '/planejamentos'
-    | '/quiz/$subjectId'
     | '/mapas-mentais/'
     | '/quiz/'
     | '/mapas-mentais/$subjectId/$topicId'
+    | '/quiz/$subjectId/$topicId'
     | '/mapas-mentais/$subjectId/'
+    | '/quiz/$subjectId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -181,11 +193,12 @@ export interface RootRouteChildren {
   PainelRoute: typeof PainelRoute
   PlanejamentoRoute: typeof PlanejamentoRoute
   PlanejamentosRoute: typeof PlanejamentosRoute
-  QuizSubjectIdRoute: typeof QuizSubjectIdRoute
   MapasMentaisIndexRoute: typeof MapasMentaisIndexRoute
   QuizIndexRoute: typeof QuizIndexRoute
   MapasMentaisSubjectIdTopicIdRoute: typeof MapasMentaisSubjectIdTopicIdRoute
+  QuizSubjectIdTopicIdRoute: typeof QuizSubjectIdTopicIdRoute
   MapasMentaisSubjectIdIndexRoute: typeof MapasMentaisSubjectIdIndexRoute
+  QuizSubjectIdIndexRoute: typeof QuizSubjectIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -253,13 +266,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuizIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/quiz/$subjectId': {
-      id: '/quiz/$subjectId'
-      path: '/quiz/$subjectId'
-      fullPath: '/quiz/$subjectId'
-      preLoaderRoute: typeof QuizSubjectIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/mapas-mentais/$subjectId/': {
       id: '/mapas-mentais/$subjectId/'
       path: '/mapas-mentais/$subjectId'
@@ -274,6 +280,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MapasMentaisSubjectIdTopicIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quiz/$subjectId/': {
+      id: '/quiz/$subjectId/'
+      path: '/quiz/$subjectId'
+      fullPath: '/quiz/$subjectId/'
+      preLoaderRoute: typeof QuizSubjectIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quiz/$subjectId/$topicId': {
+      id: '/quiz/$subjectId/$topicId'
+      path: '/quiz/$subjectId/$topicId'
+      fullPath: '/quiz/$subjectId/$topicId'
+      preLoaderRoute: typeof QuizSubjectIdTopicIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -285,11 +305,12 @@ const rootRouteChildren: RootRouteChildren = {
   PainelRoute: PainelRoute,
   PlanejamentoRoute: PlanejamentoRoute,
   PlanejamentosRoute: PlanejamentosRoute,
-  QuizSubjectIdRoute: QuizSubjectIdRoute,
   MapasMentaisIndexRoute: MapasMentaisIndexRoute,
   QuizIndexRoute: QuizIndexRoute,
   MapasMentaisSubjectIdTopicIdRoute: MapasMentaisSubjectIdTopicIdRoute,
+  QuizSubjectIdTopicIdRoute: QuizSubjectIdTopicIdRoute,
   MapasMentaisSubjectIdIndexRoute: MapasMentaisSubjectIdIndexRoute,
+  QuizSubjectIdIndexRoute: QuizSubjectIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
