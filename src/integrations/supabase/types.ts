@@ -483,6 +483,39 @@ export type Database = {
         }
         Relationships: []
       }
+      topic_quizzes: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          storage_path: string
+          subject_id: string
+          topic_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id: string
+          storage_path: string
+          subject_id: string
+          topic_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          storage_path?: string
+          subject_id?: string
+          topic_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_activity_days: {
         Row: {
           created_at: string
