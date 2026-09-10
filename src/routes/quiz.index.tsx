@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ChevronRight, ListChecks } from "lucide-react";
+import { ArrowLeft, ChevronRight, ListChecks, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useStudyState } from "@/lib/study-store";
+import { Input } from "@/components/ui/input";
+import { addSubject, useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
 
 export const Route = createFileRoute("/quiz/")({
@@ -22,8 +25,23 @@ export const Route = createFileRoute("/quiz/")({
 });
 
 function QuizSubjectsPage() {
-  const { subjects, savedPlans } = useStudyState();
+  const { subjects, savedPlans, activePlanId } = useStudyState();
   const list = allSubjects(subjects, savedPlans);
+
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+
+  const save = () => {
+    if (!name.trim()) return;
+    const id = addSubject(name);
+    if (!id) {
+      toast.error("Crie ou abra um planejamento antes de adicionar matérias.");
+      return;
+    }
+    setName("");
+    setAdding(false);
+    toast.success("Matéria adicionada.");
+  };
 
   return (
     <main className="mx-auto max-w-3xl px-4 pb-24 pt-6">
@@ -32,10 +50,38 @@ function QuizSubjectsPage() {
           <ArrowLeft /> Voltar
         </Link>
       </Button>
-      <h1 className="mt-5 text-3xl font-semibold tracking-tight">Quiz</h1>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-semibold tracking-tight">Quiz</h1>
+        <Button variant="mint" size="pill" onClick={() => setAdding(true)} disabled={!activePlanId}>
+          <Plus /> Adicionar Matéria
+        </Button>
+      </div>
       <p className="mt-1 text-sm text-muted-foreground">
         Selecione uma disciplina para ver os assuntos e seus quizzes.
       </p>
+
+      {adding && (
+        <div className="mt-4 flex flex-wrap gap-2 rounded-2xl border bg-card p-3 shadow-soft">
+          <Input
+            autoFocus
+            className="min-w-40 flex-1"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") save();
+              if (e.key === "Escape") setAdding(false);
+            }}
+            placeholder="Nome da matéria"
+          />
+          <Button variant="mint" size="sm" onClick={save} disabled={!name.trim()}>
+            Salvar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setAdding(false)}>
+            Cancelar
+          </Button>
+        </div>
+      )}
 
       {list.length === 0 ? (
         <div className="mt-8 rounded-2xl border bg-card/70 p-8 text-center">
