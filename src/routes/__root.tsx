@@ -182,6 +182,12 @@ function RootComponent() {
             >
               Mapas Mentais
             </Link>
+            <Link
+              to="/quiz"
+              className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-mint data-[status=active]:text-mint-foreground"
+            >
+              Quiz
+            </Link>
             <div className="ml-auto flex items-center gap-3">
               <SyncStatus />
               <HeaderActions />
