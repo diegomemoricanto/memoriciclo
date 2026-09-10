@@ -576,11 +576,6 @@ function CycleDonutInner({
           const color = subjectById[session.subjectId]?.color ?? "#ddd";
           const agg = bySubject[session.subjectId];
           const sub = agg ? `${formatSeconds(agg.studied)} / ${formatSeconds(agg.target)}` : "";
-          const sessionTarget = Math.max(1, session.targetMinutes * 60);
-          const doneRatio = session.completed
-            ? 1
-            : Math.min(1, session.studiedSeconds / sessionTarget);
-          const doneLength = visible * doneRatio;
           const show = (e: React.PointerEvent<SVGCircleElement>) => {
             const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
             setHover({
@@ -590,6 +585,14 @@ function CycleDonutInner({
               y: box ? e.clientY - box.top : 0,
             });
           };
+          // camada extra só em sessões concluídas: arco fino branco junto à
+          // borda externa daquele segmento específico (raio maior, traço fino).
+          const outerR = radius + 12;
+          const outerCirc = 2 * Math.PI * outerR;
+          const oLength = share * outerCirc;
+          const oGap = Math.min(1.5, oLength * 0.15);
+          const oVisible = Math.max(0.5, oLength - oGap);
+          const oOffset = (offset / circumference) * outerCirc;
           const el = (
             <g key={session.id}>
               <circle
@@ -605,18 +608,18 @@ function CycleDonutInner({
                 onPointerEnter={show}
                 onPointerDown={show}
               />
-          {doneLength > 0.3 && (
+              {session.completed && (
                 <circle
                   cx={90}
                   cy={90}
-                  r={radius}
+                  r={outerR}
                   fill="none"
-                  stroke={color}
-                  strokeWidth={30}
-                  strokeDasharray={`${doneLength} ${circumference - doneLength}`}
-                  strokeDashoffset={-offset}
-                  className="pointer-events-none transition-all"
-                  style={{ filter: "saturate(1.2) brightness(0.9)" }}
+                  stroke="white"
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  strokeDasharray={`${oVisible} ${outerCirc - oVisible}`}
+                  strokeDashoffset={-oOffset}
+                  className="pointer-events-none"
                 />
               )}
             </g>
