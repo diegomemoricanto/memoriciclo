@@ -585,14 +585,6 @@ function CycleDonutInner({
               y: box ? e.clientY - box.top : 0,
             });
           };
-          // camada extra só em sessões concluídas: arco fino branco junto à
-          // borda externa daquele segmento específico (raio maior, traço fino).
-          const outerR = radius + 12;
-          const outerCirc = 2 * Math.PI * outerR;
-          const oLength = share * outerCirc;
-          const oGap = Math.min(1.5, oLength * 0.15);
-          const oVisible = Math.max(0.5, oLength - oGap);
-          const oOffset = (offset / circumference) * outerCirc;
           const el = (
             <g key={session.id}>
               <circle
@@ -607,21 +599,8 @@ function CycleDonutInner({
                 className="cursor-pointer"
                 onPointerEnter={show}
                 onPointerDown={show}
+                style={session.completed ? { filter: "saturate(1.2) brightness(0.9)" } : undefined}
               />
-              {session.completed && (
-                <circle
-                  cx={90}
-                  cy={90}
-                  r={outerR}
-                  fill="none"
-                  stroke="white"
-                  strokeWidth={2.5}
-                  strokeLinecap="round"
-                  strokeDasharray={`${oVisible} ${outerCirc - oVisible}`}
-                  strokeDashoffset={-oOffset}
-                  className="pointer-events-none"
-                />
-              )}
             </g>
           );
           offset += length;
