@@ -490,16 +490,18 @@ export type Database = {
           id: string
           storage_path: string
           subject_id: string
+          title: string
           topic_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          file_name: string
+          file_name?: string
           id: string
-          storage_path: string
+          storage_path?: string
           subject_id: string
+          title?: string
           topic_id: string
           updated_at?: string
           user_id?: string
@@ -510,6 +512,7 @@ export type Database = {
           id?: string
           storage_path?: string
           subject_id?: string
+          title?: string
           topic_id?: string
           updated_at?: string
           user_id?: string
