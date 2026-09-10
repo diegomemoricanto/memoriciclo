@@ -1,11 +1,6 @@
 import { Bell, HelpCircle, Moon, Sun } from "lucide-react";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/lib/theme-store";
 
 const iconButtonClass =
