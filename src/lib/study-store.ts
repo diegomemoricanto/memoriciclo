@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { CycleStats, Plan, Session, StudyLog, Subject } from "./study-types";
-import { uid } from "./study-types";
+import { colorForIndex, uid } from "./study-types";
 import type { MindNode } from "./mindmap-types";
 import { getAuth, onUserChange } from "./auth-store";
 import {
@@ -354,6 +354,33 @@ export function restartCycle() {
       enqueuePending({ kind: "cycleReset", id: planId, planId, completedCycles }, error),
     );
   }
+}
+
+/**
+ * Cria uma nova matéria no planejamento ativo, sem mexer nas sessões já geradas.
+ * Devolve o id da matéria criada ou null quando não há planejamento ativo.
+ */
+export function addSubject(name: string): string | null {
+  const clean = name.trim().slice(0, 80);
+  if (!clean || !state.activePlanId || !state.plan) return null;
+  const subject: Subject = {
+    id: uid(),
+    name: clean,
+    color: colorForIndex(state.subjects.length),
+    importance: 3,
+    knowledge: 3,
+  };
+  const subjects = [...state.subjects, subject];
+  setState({ subjects });
+  const uidNow = userId();
+  const entry = state.savedPlans.find((p) => p.id === state.activePlanId);
+  if (uidNow && entry) {
+    const protectedSubjects = [...new Set(state.studyLogs.map((l) => l.subjectId))];
+    void saveRemotePlan(uidNow, entry, protectedSubjects).catch((error) =>
+      enqueuePending({ kind: "plan", id: entry.id, entry }, error),
+    );
+  }
+  return subject.id;
 }
 
 export function setSubjectMindMap(subjectId: string, map: MindNode) {
