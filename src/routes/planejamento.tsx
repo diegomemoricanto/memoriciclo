@@ -605,49 +605,19 @@ function CycleDonutInner({
                 onPointerEnter={show}
                 onPointerDown={show}
               />
-              {doneLength > 0.3 && (
-                <>
-                  {/* halo: separa a camada sobreposta do bloco original */}
-                  <circle
-                    cx={90}
-                    cy={90}
-                    r={radius}
-                    fill="none"
-                    strokeWidth={22}
-                    strokeDasharray={`${doneLength} ${circumference - doneLength}`}
-                    strokeDashoffset={-offset}
-                    strokeLinecap="round"
-                    className="pointer-events-none stroke-background transition-all"
-                  />
-                  {/* arco sobreposto mais fino, elevado e com brilho */}
-                  <circle
-                    cx={90}
-                    cy={90}
-                    r={radius}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={16}
-                    strokeDasharray={`${doneLength} ${circumference - doneLength}`}
-                    strokeDashoffset={-offset}
-                    strokeLinecap="round"
-                    className="pointer-events-none transition-all"
-                    style={{
-                      filter: `drop-shadow(0 0 2px ${color}) drop-shadow(0 1px 1px rgb(0 0 0 / 0.25)) saturate(1.25) brightness(1.08)`,
-                    }}
-                  />
-                  {/* linha de brilho no topo da camada */}
-                  <circle
-                    cx={90}
-                    cy={90}
-                    r={radius}
-                    fill="none"
-                    strokeWidth={4}
-                    strokeDasharray={`${doneLength} ${circumference - doneLength}`}
-                    strokeDashoffset={-offset}
-                    strokeLinecap="round"
-                    className="pointer-events-none stroke-white/60 transition-all"
-                  />
-                </>
+          {doneLength > 0.3 && (
+                <circle
+                  cx={90}
+                  cy={90}
+                  r={radius}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={30}
+                  strokeDasharray={`${doneLength} ${circumference - doneLength}`}
+                  strokeDashoffset={-offset}
+                  className="pointer-events-none transition-all"
+                  style={{ filter: "saturate(1.2) brightness(0.9)" }}
+                />
               )}
             </g>
           );
