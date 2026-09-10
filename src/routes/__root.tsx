@@ -233,12 +233,14 @@ function UserMenu() {
         type="button"
         aria-label="Menu do usuário"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-mint bg-mint text-sm font-semibold text-mint-foreground"
+        className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-mint bg-mint text-base font-semibold text-mint-foreground"
       >
         {profile?.avatar_url ? (
           <img src={profile.avatar_url} alt={displayName} className="h-full w-full object-cover" />
         ) : (
-          initial
+          <span translate="no" className="notranslate">
+            {initial}
+          </span>
         )}
       </button>
 
