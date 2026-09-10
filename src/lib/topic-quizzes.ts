@@ -6,6 +6,7 @@ export type TopicQuiz = {
   id: string;
   subjectId: string;
   topicId: string;
+  title: string;
   fileName: string;
   storagePath: string;
   updatedAt: string;
@@ -17,6 +18,26 @@ const uid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2, 12);
+
+type Row = {
+  id: string;
+  subject_id: string;
+  topic_id: string;
+  title?: string | null;
+  file_name: string | null;
+  storage_path: string | null;
+  updated_at: string;
+};
+
+const toQuiz = (r: Row): TopicQuiz => ({
+  id: r.id,
+  subjectId: r.subject_id,
+  topicId: r.topic_id,
+  title: r.title ?? "",
+  fileName: r.file_name ?? "",
+  storagePath: r.storage_path ?? "",
+  updatedAt: r.updated_at,
+});
 
 /** quizzes (um por assunto) de uma disciplina do usuário logado */
 export function useSubjectQuizzes(subjectId: string) {
@@ -45,16 +66,7 @@ export function useSubjectQuizzes(subjectId: string) {
       .eq("user_id", userId)
       .eq("subject_id", subjectId);
     const map: Record<string, TopicQuiz> = {};
-    for (const r of data ?? []) {
-      map[r.topic_id] = {
-        id: r.id,
-        subjectId: r.subject_id,
-        topicId: r.topic_id,
-        fileName: r.file_name,
-        storagePath: r.storage_path,
-        updatedAt: r.updated_at,
-      };
-    }
+    for (const r of (data ?? []) as Row[]) map[r.topic_id] = toQuiz(r);
     setQuizzes(map);
     setLoading(false);
   }, [subjectId, userId]);
@@ -62,6 +74,37 @@ export function useSubjectQuizzes(subjectId: string) {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  /** cria/renomeia o título do quiz do assunto (sem arquivo ainda) */
+  const setTitle = useCallback(
+    async (topicId: string, title: string) => {
+      if (!userId) return;
+      const clean = title.trim().slice(0, 120);
+      if (!clean) return;
+      setBusyTopicId(topicId);
+      try {
+        const previous = quizzes[topicId];
+        const saved = await supabase.from("topic_quizzes").upsert(
+          {
+            id: previous?.id ?? uid(),
+            user_id: userId,
+            subject_id: subjectId,
+            topic_id: topicId,
+            title: clean,
+            file_name: previous?.fileName ?? "",
+            storage_path: previous?.storagePath ?? "",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,topic_id" },
+        );
+        if (saved.error) throw new Error(saved.error.message);
+        await reload();
+      } finally {
+        setBusyTopicId(null);
+      }
+    },
+    [quizzes, reload, subjectId, userId],
+  );
 
   /** envia (ou substitui) o arquivo HTML do quiz daquele assunto */
   const upload = useCallback(
@@ -83,6 +126,7 @@ export function useSubjectQuizzes(subjectId: string) {
           user_id: userId,
           subject_id: subjectId,
           topic_id: topicId,
+          title: previous?.title || file.name.replace(/\.html?$/i, "").slice(0, 120),
           file_name: file.name.slice(-120),
           storage_path: path,
           updated_at: new Date().toISOString(),
@@ -94,7 +138,7 @@ export function useSubjectQuizzes(subjectId: string) {
           await supabase.storage.from(BUCKET).remove([path]);
           throw new Error(saved.error.message);
         }
-        if (previous && previous.storagePath !== path) {
+        if (previous?.storagePath && previous.storagePath !== path) {
           await supabase.storage.from(BUCKET).remove([previous.storagePath]);
         }
         await reload();
@@ -112,7 +156,7 @@ export function useSubjectQuizzes(subjectId: string) {
       if (!quiz) return;
       setBusyTopicId(topicId);
       try {
-        await supabase.storage.from(BUCKET).remove([quiz.storagePath]);
+        if (quiz.storagePath) await supabase.storage.from(BUCKET).remove([quiz.storagePath]);
         await supabase.from("topic_quizzes").delete().eq("user_id", userId).eq("id", quiz.id);
         await reload();
       } finally {
@@ -122,7 +166,7 @@ export function useSubjectQuizzes(subjectId: string) {
     [quizzes, reload, userId],
   );
 
-  return { quizzes, loading, busyTopicId, upload, remove };
+  return { quizzes, loading, busyTopicId, setTitle, upload, remove };
 }
 
 /** baixa o HTML do quiz para renderizar isolado em iframe sandbox */
