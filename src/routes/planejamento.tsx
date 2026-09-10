@@ -599,7 +599,7 @@ function CycleDonutInner({
                 className="cursor-pointer"
                 onPointerEnter={show}
                 onPointerDown={show}
-                style={session.completed ? { filter: "saturate(1.2) brightness(0.9)" } : undefined}
+                style={session.completed ? { filter: "saturate(1.3) brightness(0.5)" } : undefined}
               />
             </g>
           );
