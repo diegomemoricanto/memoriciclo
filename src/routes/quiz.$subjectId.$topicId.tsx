@@ -200,26 +200,28 @@ function TopicQuizPage() {
         )}
 
         {html !== null && (
-          <div className="mt-4 overflow-hidden rounded-xl border bg-background">
-            <div className="flex items-center justify-between border-b px-3 py-2">
-              <span className="text-xs font-medium text-muted-foreground">
-                Quiz — {quiz?.title ?? topic?.name}
-              </span>
-              <button
-                type="button"
-                aria-label="Fechar quiz"
-                className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted"
-                onClick={() => setHtml(null)}
-              >
-                <X className="size-4" />
-              </button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-0 sm:p-6">
+            <div className="flex h-full w-full flex-col overflow-hidden bg-background sm:h-[90vh] sm:w-[90vw] sm:rounded-2xl sm:border sm:shadow-2xl">
+              <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
+                <span className="truncate text-sm font-medium text-muted-foreground">
+                  Quiz — {quiz?.title ?? topic?.name}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Fechar quiz"
+                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted"
+                  onClick={() => setHtml(null)}
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              <iframe
+                title={`Quiz de ${topic?.name ?? "assunto"}`}
+                srcDoc={html}
+                sandbox="allow-scripts allow-forms allow-popups"
+                className="min-h-0 w-full flex-1 border-0 bg-white"
+              />
             </div>
-            <iframe
-              title={`Quiz de ${topic?.name ?? "assunto"}`}
-              srcDoc={html}
-              sandbox="allow-scripts allow-forms allow-popups"
-              className="h-[70vh] w-full border-0 bg-white"
-            />
           </div>
         )}
       </section>
