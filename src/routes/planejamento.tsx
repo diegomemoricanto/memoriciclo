@@ -619,6 +619,20 @@ function CycleDonutInner({
                   style={{ filter: "saturate(1.2) brightness(0.9)" }}
                 />
               )}
+              {session.completed && (
+                <circle
+                  cx={90}
+                  cy={90}
+                  r={radius + 13}
+                  fill="none"
+                  stroke="white"
+                  strokeWidth={3}
+                  strokeDasharray={`${Math.max(0.5, visible - 1)} ${circumference}`}
+                  strokeDashoffset={-offset}
+                  className="pointer-events-none"
+                  style={{ opacity: 0.85 }}
+                />
+              )}
             </g>
           );
           offset += length;
