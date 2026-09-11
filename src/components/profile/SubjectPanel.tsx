@@ -53,6 +53,14 @@ export function SubjectPanel() {
           (a, l) => a + (l.questionsTotal ?? (l.questionsCorrect ?? 0) + (l.questionsWrong ?? 0)),
           0,
         );
+        const topics = topicBreakdown(
+          logs,
+          Object.fromEntries(
+            Object.entries(topicAliases)
+              .filter(([k]) => k.startsWith(`${s.id}::`))
+              .map(([k, v]) => [k.slice(s.id.length + 2), v]),
+          ),
+        );
         return {
           subject: s,
           seconds,
@@ -60,14 +68,9 @@ export function SubjectPanel() {
           wrong,
           total,
           accuracy: total ? (correct / total) * 100 : null,
-          topics: topicBreakdown(
-            logs,
-            Object.fromEntries(
-              Object.entries(topicAliases)
-                .filter(([k]) => k.startsWith(`${s.id}::`))
-                .map(([k, v]) => [k.slice(s.id.length + 2), v]),
-            ),
-          ),
+          // Apenas ordenação visual: tópicos com mais tempo estudado no topo.
+          // Nenhum dado armazenado é alterado — somente a ordem de exibição.
+          topics: [...topics].sort((a, b) => b.seconds - a.seconds),
         };
       })
       .sort((a, b) => a.subject.name.localeCompare(b.subject.name, "pt-BR"));
