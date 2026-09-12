@@ -86,12 +86,10 @@ function TopicQuizPage() {
     setDownloading(true);
     try {
       const content = html ?? (await fetchQuizHtml(quiz.storagePath));
-      const baseName = (
-        quiz.fileName ||
-        quiz.title ||
-        topic?.name ||
-        "quiz"
-      ).replace(/\.html?$/i, "");
+      const baseName = (quiz.fileName || quiz.title || topic?.name || "quiz").replace(
+        /\.html?$/i,
+        "",
+      );
       const safe = baseName.replace(/[^\w.\-]+/g, "_") || "quiz";
       const fileName = `${safe}.html`;
       const blob = new Blob([content], { type: "text/html;charset=utf-8" });
