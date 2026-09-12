@@ -177,9 +177,7 @@ function CurrentCycleCard({ plan, sessions, subjects, studyLogs, onCreate }: Lan
             size="pill"
             className="mt-4 w-full sm:w-auto"
             onClick={() =>
-              requireAuth(() =>
-                navigate({ to: "/planejamento", search: { iniciar: "proxima" } }),
-              )
+              requireAuth(() => navigate({ to: "/planejamento", search: { iniciar: "proxima" } }))
             }
           >
             <Play /> Começar sessão
