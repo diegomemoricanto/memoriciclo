@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-store";
 import {
@@ -56,9 +56,8 @@ import {
 } from "@/lib/study-types";
 
 export const Route = createFileRoute("/planejamento")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    iniciar: search.iniciar === "proxima" ? ("proxima" as const) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { iniciar?: "proxima" } =>
+    search["iniciar"] === "proxima" ? { iniciar: "proxima" } : {},
   head: () => ({
     meta: [
       { title: "Planejamento — Painel de Estudos" },
@@ -94,6 +93,7 @@ function DashboardInner() {
   const { userId } = useAuth();
   const { iniciar } = Route.useSearch();
   const navigate = useNavigate();
+  const handledStartIntent = useRef(false);
 
   /* mantém a trava viva enquanto o cronômetro está aberto e a libera ao sair */
   useEffect(() => {
@@ -138,7 +138,8 @@ function DashboardInner() {
   );
 
   useEffect(() => {
-    if (iniciar !== "proxima" || loading) return;
+    if (iniciar !== "proxima" || loading || handledStartIntent.current) return;
+    handledStartIntent.current = true;
     const next = sessions.find((session) => !session.completed);
     if (next) openSession(next.id);
     void navigate({ to: "/planejamento", search: {}, replace: true });
