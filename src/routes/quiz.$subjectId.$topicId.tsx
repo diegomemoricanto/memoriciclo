@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, FileUp, Loader2, Pencil, Play, Trash2, X } from "lucide-react";
+import { ArrowLeft, Download, FileUp, Loader2, Pencil, Play, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,7 @@ function TopicQuizPage() {
   const [titleDraft, setTitleDraft] = useState("");
   const [html, setHtml] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     setTitleDraft(quiz?.title ?? "");
@@ -77,6 +78,33 @@ function TopicQuizPage() {
       toast.error("Não foi possível abrir o quiz.");
     } finally {
       setOpening(false);
+    }
+  };
+
+  const download = async () => {
+    if (!quiz?.storagePath) return;
+    setDownloading(true);
+    try {
+      const content = html ?? (await fetchQuizHtml(quiz.storagePath));
+      const baseName = (quiz.fileName || quiz.title || topic?.name || "quiz").replace(
+        /\.html?$/i,
+        "",
+      );
+      const safe = baseName.replace(/[^\w.\-]+/g, "_") || "quiz";
+      const fileName = `${safe}.html`;
+      const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Não foi possível baixar o arquivo.");
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -206,14 +234,30 @@ function TopicQuizPage() {
                 <span className="truncate text-sm font-medium text-muted-foreground">
                   Quiz — {quiz?.title ?? topic?.name}
                 </span>
-                <button
-                  type="button"
-                  aria-label="Fechar quiz"
-                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted"
-                  onClick={() => setHtml(null)}
-                >
-                  <X className="size-5" />
-                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="Baixar arquivo HTML do quiz"
+                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                    onClick={() => void download()}
+                    disabled={downloading}
+                  >
+                    {downloading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Download className="size-4" />
+                    )}
+                    <span className="hidden sm:inline">Baixar HTML</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Fechar quiz"
+                    className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted"
+                    onClick={() => setHtml(null)}
+                  >
+                    <X className="size-5" />
+                  </button>
+                </div>
               </div>
               <iframe
                 title={`Quiz de ${topic?.name ?? "assunto"}`}
