@@ -1,9 +1,19 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Layers, Network, Timer } from "lucide-react";
+import { BarChart3, Flame, Layers, Network, Play, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRequireAuth } from "@/components/auth/auth-gate";
+import { currentStreak, studyDayKeys } from "@/lib/study-averages";
+import type { Plan, Session, StudyLog, Subject } from "@/lib/study-types";
 
-export function Landing({ hasSaved, onCreate }: { hasSaved: boolean; onCreate: () => void }) {
+type LandingProps = {
+  plan: Plan | null;
+  sessions: Session[];
+  subjects: Subject[];
+  studyLogs: StudyLog[];
+  onCreate: () => void;
+};
+
+export function Landing({ plan, sessions, subjects, studyLogs, onCreate }: LandingProps) {
   const requireAuth = useRequireAuth();
   const navigate = useNavigate();
   const features = [
@@ -62,14 +72,23 @@ export function Landing({ hasSaved, onCreate }: { hasSaved: boolean; onCreate: (
             ))}
           </div>
         </div>
-        <LandingWheel />
+        <div className="min-w-0">
+          <LandingWheel />
+          <CurrentCycleCard
+            plan={plan}
+            sessions={sessions}
+            subjects={subjects}
+            studyLogs={studyLogs}
+            onCreate={onCreate}
+          />
+        </div>
       </div>
     </main>
   );
 }
 
 function LandingWheel() {
-  const slices = 18;
+  const slices = 10;
   const radius = 70;
   const circumference = 2 * Math.PI * radius;
   const seg = circumference / slices;
@@ -90,17 +109,105 @@ function LandingWheel() {
             fill="none"
             stroke={palette[i % palette.length]}
             strokeWidth={26}
-            strokeDasharray={`${seg - 3} ${circumference - seg + 3}`}
+            strokeDasharray={`${seg - 6} ${circumference - seg + 6}`}
             strokeDashoffset={-i * seg}
           />
         ))}
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-3xl font-semibold">Ciclo</span>
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="absolute inset-[21%] rounded-full bg-background/70 backdrop-blur" />
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
+        <span className="bg-gradient-to-r from-mint to-primary bg-clip-text text-4xl font-semibold text-transparent sm:text-6xl">
+          Ciclo
+        </span>
+        <span className="mt-2 text-sm font-bold uppercase tracking-[0.25em] text-mint-foreground sm:text-base">
           intercalado
         </span>
       </div>
     </div>
+  );
+}
+
+function CurrentCycleCard({ plan, sessions, subjects, studyLogs, onCreate }: LandingProps) {
+  const requireAuth = useRequireAuth();
+  const navigate = useNavigate();
+  const pending = sessions.filter((session) => !session.completed);
+  const current = pending[0];
+  const subjectById = new Map(subjects.map((subject) => [subject.id, subject]));
+  const currentSubject = current ? subjectById.get(current.subjectId) : undefined;
+  const nextNames = pending
+    .slice(1, 3)
+    .map((session) => subjectById.get(session.subjectId)?.name)
+    .filter((name): name is string => Boolean(name));
+  const streak = currentStreak(studyDayKeys(studyLogs));
+
+  return (
+    <section className="mt-6 rounded-2xl border bg-card/70 p-4 shadow-soft backdrop-blur">
+      {!plan || sessions.length === 0 ? (
+        <>
+          <h2 className="text-lg font-semibold">Monte seu primeiro ciclo</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Cadastre suas disciplinas e o app organiza a sequência.
+          </p>
+          <Button
+            variant="mint"
+            size="pill"
+            className="mt-4 w-full sm:w-auto"
+            onClick={() => requireAuth(onCreate)}
+          >
+            Criar Planejamento
+          </Button>
+        </>
+      ) : current && currentSubject ? (
+        <>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Agora no seu ciclo
+          </p>
+          <div className="mt-2 flex min-w-0 items-center gap-2">
+            <span
+              className="size-3 shrink-0 rounded-full"
+              style={{ backgroundColor: currentSubject.color }}
+            />
+            <h2 className="truncate text-xl font-semibold">{currentSubject.name}</h2>
+          </div>
+          {nextNames.length > 0 && (
+            <p className="mt-2 text-sm text-muted-foreground">Depois: {nextNames.join(", ")}</p>
+          )}
+          <Button
+            variant="mint"
+            size="pill"
+            className="mt-4 w-full sm:w-auto"
+            onClick={() =>
+              requireAuth(() =>
+                navigate({ to: "/planejamento", search: { iniciar: "proxima" } }),
+              )
+            }
+          >
+            <Play /> Começar sessão
+          </Button>
+        </>
+      ) : (
+        <>
+          <h2 className="text-lg font-semibold">Ciclo concluído!</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Você fechou todas as sessões deste ciclo.
+          </p>
+          <Button
+            variant="mint"
+            size="pill"
+            className="mt-4 w-full sm:w-auto"
+            onClick={() => navigate({ to: "/planejamento" })}
+          >
+            Iniciar novo ciclo
+          </Button>
+        </>
+      )}
+
+      {streak > 0 && (
+        <div className="mt-4 flex items-center gap-2 border-t pt-3 text-sm font-medium text-muted-foreground">
+          <Flame className="size-4 text-mint-foreground" />
+          <span>{streak} dias estudando</span>
+        </div>
+      )}
+    </section>
   );
 }
