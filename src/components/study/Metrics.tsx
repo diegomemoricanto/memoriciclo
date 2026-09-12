@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { Flame, Layers, Target, Timer, TrendingUp } from "lucide-react";
+import { Award, Flame, Layers, Star, Target, Timer, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
 import { formatSeconds, subjectWeight } from "@/lib/study-types";
 import { topicBreakdown } from "@/lib/topic-stats";
-import { currentStreak, periodAverages } from "@/lib/study-averages";
-import { useActivityDays } from "@/lib/profile-widgets";
+import { currentStreak, periodAverages, studyDayKeys } from "@/lib/study-averages";
+import { computeXp, levelProgress } from "@/lib/progress";
 
 type Period = "day" | "week" | "month" | "year";
 
@@ -90,14 +90,17 @@ function accuracyColor(pct: number) {
 export function Metrics() {
   const [period, setPeriod] = useState<Period>("week");
   const { studyLogs, subjects, savedPlans, topicAliases } = useStudyState();
-  const { days: activityDays } = useActivityDays();
   const known = useMemo(() => allSubjects(subjects, savedPlans), [subjects, savedPlans]);
 
   const totalSeconds = studyLogs.reduce((a, l) => a + l.durationSeconds, 0);
   const totalCycles = savedPlans.reduce((a, p) => a + p.cycleStats.completedCycles, 0);
 
-  /** streak de acesso ao app: independente do filtro de período dos gráficos */
-  const streak = useMemo(() => currentStreak(activityDays), [activityDays]);
+  /** sequência de dias com estudo registrado (não dias de acesso ao app) */
+  const streak = useMemo(() => currentStreak(studyDayKeys(studyLogs)), [studyLogs]);
+
+  /** XP e nível derivados em tempo real dos logs e ciclos (sem persistência) */
+  const xpTotal = useMemo(() => computeXp(studyLogs, totalCycles).xp, [studyLogs, totalCycles]);
+  const level = useMemo(() => levelProgress(xpTotal), [xpTotal]);
 
   /** médias por período, cada divisor calculado de forma independente */
   const periodStats = useMemo(() => periodAverages(studyLogs), [studyLogs]);
