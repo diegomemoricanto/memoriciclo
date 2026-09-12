@@ -189,9 +189,41 @@ export function Metrics() {
 
   return (
     <div className="space-y-5">
+      <section className="rounded-2xl bg-card p-4 shadow-soft">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
+          <p className="flex items-center gap-2 text-sm">
+            <Flame className="size-4 shrink-0 text-mint-foreground" />
+            <span className="font-semibold">{streak.toLocaleString("pt-BR")}</span>
+            <span className="text-muted-foreground">dias estudando</span>
+          </p>
+          <p className="flex items-center gap-2 text-sm">
+            <Star className="size-4 shrink-0 text-mint-foreground" />
+            <span className="font-semibold">{xpTotal.toLocaleString("pt-BR")}</span>
+            <span className="text-muted-foreground">XP</span>
+          </p>
+          <p className="flex items-center gap-2 text-sm">
+            <Award className="size-4 shrink-0 text-mint-foreground" />
+            <span className="font-semibold">Nível {level.level.toLocaleString("pt-BR")}</span>
+          </p>
+        </div>
+        <div className="mt-3 flex items-center gap-3">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-mint"
+              style={{ width: `${level.progress * 100}%` }}
+            />
+          </div>
+          <p className="shrink-0 text-xs text-muted-foreground">
+            {studyLogs.length === 0
+              ? "Registre sua primeira sessão para começar a pontuar."
+              : `Faltam ${level.remaining.toLocaleString("pt-BR")} XP para o nível ${level.nextLevel.toLocaleString("pt-BR")}`}
+          </p>
+        </div>
+      </section>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Timer} label="Total estudado" value={formatSeconds(totalSeconds)} />
-        <StatCard icon={Flame} label="Dias no app" value={`${streak} dia(s)`} />
+        <StatCard icon={Flame} label="Dias estudando" value={`${streak} dia(s)`} />
         <StatCard icon={Layers} label="Ciclos completos" value={String(totalCycles)} />
         <StatCard
           icon={Target}
