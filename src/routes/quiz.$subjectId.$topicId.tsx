@@ -81,6 +81,35 @@ function TopicQuizPage() {
     }
   };
 
+  const download = async () => {
+    if (!quiz?.storagePath) return;
+    setDownloading(true);
+    try {
+      const content = html ?? (await fetchQuizHtml(quiz.storagePath));
+      const baseName = (
+        quiz.fileName ||
+        quiz.title ||
+        topic?.name ||
+        "quiz"
+      ).replace(/\.html?$/i, "");
+      const safe = baseName.replace(/[^\w.\-]+/g, "_") || "quiz";
+      const fileName = `${safe}.html`;
+      const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Não foi possível baixar o arquivo.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <main className="mx-auto max-w-3xl px-4 pb-24 pt-6">
       <Button variant="outline" size="sm" asChild>
