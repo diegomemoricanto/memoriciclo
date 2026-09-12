@@ -40,6 +40,7 @@ function TopicQuizPage() {
   const [titleDraft, setTitleDraft] = useState("");
   const [html, setHtml] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     setTitleDraft(quiz?.title ?? "");
