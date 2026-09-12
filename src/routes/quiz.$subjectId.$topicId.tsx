@@ -236,14 +236,30 @@ function TopicQuizPage() {
                 <span className="truncate text-sm font-medium text-muted-foreground">
                   Quiz — {quiz?.title ?? topic?.name}
                 </span>
-                <button
-                  type="button"
-                  aria-label="Fechar quiz"
-                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted"
-                  onClick={() => setHtml(null)}
-                >
-                  <X className="size-5" />
-                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="Baixar arquivo HTML do quiz"
+                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                    onClick={() => void download()}
+                    disabled={downloading}
+                  >
+                    {downloading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Download className="size-4" />
+                    )}
+                    <span className="hidden sm:inline">Baixar HTML</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Fechar quiz"
+                    className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted"
+                    onClick={() => setHtml(null)}
+                  >
+                    <X className="size-5" />
+                  </button>
+                </div>
               </div>
               <iframe
                 title={`Quiz de ${topic?.name ?? "assunto"}`}
