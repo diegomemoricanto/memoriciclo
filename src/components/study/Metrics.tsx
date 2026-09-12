@@ -188,7 +188,7 @@ export function Metrics() {
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Timer} label="Total estudado" value={formatSeconds(totalSeconds)} />
-        <StatCard icon={Flame} label="Dias seguidos" value={`${streak} dia(s)`} />
+        <StatCard icon={Flame} label="Dias no app" value={`${streak} dia(s)`} />
         <StatCard icon={Layers} label="Ciclos completos" value={String(totalCycles)} />
         <StatCard
           icon={Target}

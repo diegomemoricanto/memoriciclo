@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-store";
 import {
@@ -56,6 +56,8 @@ import {
 } from "@/lib/study-types";
 
 export const Route = createFileRoute("/planejamento")({
+  validateSearch: (search: Record<string, unknown>): { iniciar?: "proxima" } =>
+    search["iniciar"] === "proxima" ? { iniciar: "proxima" } : {},
   head: () => ({
     meta: [
       { title: "Planejamento — Painel de Estudos" },
@@ -83,11 +85,15 @@ function Dashboard() {
 }
 
 function DashboardInner() {
-  const { subjects, plan, sessions, cycleStats, savedPlans, activePlanId } = useStudyState();
+  const { subjects, plan, sessions, cycleStats, savedPlans, activePlanId, studyLogs, loading } =
+    useStudyState();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [liveSeconds, setLiveSeconds] = useState<number | null>(null);
   const { userId } = useAuth();
+  const { iniciar } = Route.useSearch();
+  const navigate = useNavigate();
+  const handledStartIntent = useRef(false);
 
   /* mantém a trava viva enquanto o cronômetro está aberto e a libera ao sair */
   useEffect(() => {
@@ -110,23 +116,34 @@ function DashboardInner() {
 
   const activeSession = sessions.find((s) => s.id === activeId) ?? null;
 
-  const openSession = (id: string) => {
-    const session = sessions.find((s) => s.id === id);
-    if (!session || session.completed) return;
-    void acquireSessionLock(userId, id).then((lock) => {
-      if (!lock.ok) {
-        toast.error(
-          lock.reason === "tab"
-            ? "Já existe uma sessão de estudo em andamento em outra aba deste navegador."
-            : "Já existe uma sessão de estudo em andamento em outro aparelho.",
-          { description: "Encerre a sessão lá antes de iniciar outra por aqui." },
-        );
-        return;
-      }
-      setLiveSeconds(session.studiedSeconds);
-      setActiveId(id);
-    });
-  };
+  const openSession = useCallback(
+    (id: string) => {
+      const session = sessions.find((s) => s.id === id);
+      if (!session || session.completed) return;
+      void acquireSessionLock(userId, id).then((lock) => {
+        if (!lock.ok) {
+          toast.error(
+            lock.reason === "tab"
+              ? "Já existe uma sessão de estudo em andamento em outra aba deste navegador."
+              : "Já existe uma sessão de estudo em andamento em outro aparelho.",
+            { description: "Encerre a sessão lá antes de iniciar outra por aqui." },
+          );
+          return;
+        }
+        setLiveSeconds(session.studiedSeconds);
+        setActiveId(id);
+      });
+    },
+    [sessions, userId],
+  );
+
+  useEffect(() => {
+    if (iniciar !== "proxima" || loading || handledStartIntent.current) return;
+    handledStartIntent.current = true;
+    const next = sessions.find((session) => !session.completed);
+    if (next) openSession(next.id);
+    void navigate({ to: "/planejamento", search: {}, replace: true });
+  }, [iniciar, loading, navigate, openSession, sessions]);
 
   /** encerramento único: grava o log (matéria + assunto + questões) e o progresso da sessão */
   const wrapUp = (session: Session, result: WrapUpResult, complete: boolean) => {
@@ -197,7 +214,13 @@ function DashboardInner() {
   if (!plan || sessions.length === 0) {
     return (
       <>
-        <Landing hasSaved={savedPlans.length > 0} onCreate={() => setWizardOpen(true)} />
+        <Landing
+          plan={plan}
+          sessions={sessions}
+          subjects={subjects}
+          studyLogs={studyLogs}
+          onCreate={() => setWizardOpen(true)}
+        />
         {wizardOpen && (
           <PlanWizard
             initialSubjects={subjects}

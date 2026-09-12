@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-  const { subjects, plan, savedPlans, cycleStats, activePlanId } = useStudyState();
+  const { subjects, plan, sessions, studyLogs, cycleStats, activePlanId } = useStudyState();
   const [wizardOpen, setWizardOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -44,7 +44,13 @@ function LandingPage() {
 
   return (
     <>
-      <Landing hasSaved={savedPlans.length > 0} onCreate={() => setWizardOpen(true)} />
+      <Landing
+        plan={plan}
+        sessions={sessions}
+        subjects={subjects}
+        studyLogs={studyLogs}
+        onCreate={() => setWizardOpen(true)}
+      />
       {wizardOpen && (
         <PlanWizard
           initialSubjects={subjects}
