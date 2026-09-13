@@ -285,7 +285,7 @@ export function TimerDialog({
 
   const progress = Math.min(100, (elapsed / targetSeconds) * 100);
 
-  return (
+  const dialog = (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4"
       role="dialog"
