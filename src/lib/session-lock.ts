@@ -84,12 +84,7 @@ export async function acquireSessionLock(
 
   const local = readLocal();
   const sameUser = !local?.userId || local.userId === userId;
-  if (
-    local &&
-    sameUser &&
-    local.holderId !== me &&
-    now - local.heartbeatAt < LOCAL_STALE_MS
-  ) {
+  if (local && sameUser && local.holderId !== me && now - local.heartbeatAt < LOCAL_STALE_MS) {
     return { ok: false, reason: "tab", sessionId: local.sessionId ?? null };
   }
 
