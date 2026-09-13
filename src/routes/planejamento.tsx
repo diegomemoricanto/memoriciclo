@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-store";
 import {
   LOCK_HEARTBEAT_MS,
   acquireSessionLock,
+  forceReleaseSessionLock,
   heartbeatSessionLock,
   releaseSessionLock,
 } from "@/lib/session-lock";
@@ -104,6 +105,11 @@ function DashboardInner() {
     };
   }, [activeId, userId]);
 
+  /* após F5, a identidade da aba é preservada e sua trava anterior é removida */
+  useEffect(() => {
+    if (!activeId) void releaseSessionLock(userId);
+  }, [userId]);
+
   const subjectById = useMemo(() => Object.fromEntries(subjects.map((s) => [s.id, s])), [subjects]);
 
   const totalTargetSeconds = sessions.reduce((a, s) => a + s.targetMinutes * 60, 0);
@@ -117,11 +123,28 @@ function DashboardInner() {
     if (!session || session.completed) return;
     void acquireSessionLock(userId, id).then((lock) => {
       if (!lock.ok) {
-        toast.error(
+        const toastId = toast.error(
           lock.reason === "tab"
             ? "Já existe uma sessão de estudo em andamento em outra aba deste navegador."
             : "Já existe uma sessão de estudo em andamento em outro aparelho.",
-          { description: "Encerre a sessão lá antes de iniciar outra por aqui." },
+          {
+            description: "A trava expira automaticamente se a outra sessão foi abandonada.",
+            duration: 12_000,
+            action: {
+              label: "Forçar encerramento",
+              onClick: () => {
+                void forceReleaseSessionLock(userId)
+                  .then(() => acquireSessionLock(userId, id))
+                  .then((retry) => {
+                    if (!retry.ok) throw new Error("lock-not-released");
+                    toast.dismiss(toastId);
+                    setLiveSeconds(session.studiedSeconds);
+                    setActiveId(id);
+                  })
+                  .catch(() => toast.error("Não foi possível liberar a sessão. Tente novamente."));
+              },
+            },
+          },
         );
         return;
       }
@@ -216,7 +239,9 @@ function DashboardInner() {
     <main className="mx-auto max-w-6xl px-4 pb-24 pt-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Planejamento</h1>
+          <h1 translate="no" className="notranslate text-3xl font-semibold tracking-tight">
+            {activeName?.trim() || "Planejamento"}
+          </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <DropdownMenu>
