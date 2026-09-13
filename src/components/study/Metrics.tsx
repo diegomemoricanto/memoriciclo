@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { Award, Flame, Layers, Star, Target, Timer, TrendingUp } from "lucide-react";
+import { Flame, Layers, Target, Timer, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStudyState } from "@/lib/study-store";
 import { allSubjects } from "@/lib/mind-subjects";
 import { formatSeconds, subjectWeight } from "@/lib/study-types";
 import { topicBreakdown } from "@/lib/topic-stats";
-import { currentStreak, periodAverages, studyDayKeys } from "@/lib/study-averages";
-import { computeXp, levelProgress } from "@/lib/progress";
+import { currentStreak, periodAverages } from "@/lib/study-averages";
+import { useActivityDays } from "@/lib/profile-widgets";
 
 type Period = "day" | "week" | "month" | "year";
 
@@ -90,17 +90,14 @@ function accuracyColor(pct: number) {
 export function Metrics() {
   const [period, setPeriod] = useState<Period>("week");
   const { studyLogs, subjects, savedPlans, topicAliases } = useStudyState();
+  const { days: activityDays } = useActivityDays();
   const known = useMemo(() => allSubjects(subjects, savedPlans), [subjects, savedPlans]);
 
   const totalSeconds = studyLogs.reduce((a, l) => a + l.durationSeconds, 0);
   const totalCycles = savedPlans.reduce((a, p) => a + p.cycleStats.completedCycles, 0);
 
-  /** sequência de dias com estudo registrado (não dias de acesso ao app) */
-  const streak = useMemo(() => currentStreak(studyDayKeys(studyLogs)), [studyLogs]);
-
-  /** XP e nível derivados em tempo real dos logs e ciclos (sem persistência) */
-  const xpTotal = useMemo(() => computeXp(studyLogs, totalCycles).xp, [studyLogs, totalCycles]);
-  const level = useMemo(() => levelProgress(xpTotal), [xpTotal]);
+  /** streak de acesso ao app: independente do filtro de período dos gráficos */
+  const streak = useMemo(() => currentStreak(activityDays), [activityDays]);
 
   /** médias por período, cada divisor calculado de forma independente */
   const periodStats = useMemo(() => periodAverages(studyLogs), [studyLogs]);
@@ -189,41 +186,9 @@ export function Metrics() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl bg-card p-4 shadow-soft">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
-          <p className="flex items-center gap-2 text-sm">
-            <Flame className="size-4 shrink-0 text-mint-foreground" />
-            <span className="font-semibold">{streak.toLocaleString("pt-BR")}</span>
-            <span className="text-muted-foreground">dias estudando</span>
-          </p>
-          <p className="flex items-center gap-2 text-sm">
-            <Star className="size-4 shrink-0 text-mint-foreground" />
-            <span className="font-semibold">{xpTotal.toLocaleString("pt-BR")}</span>
-            <span className="text-muted-foreground">XP</span>
-          </p>
-          <p className="flex items-center gap-2 text-sm">
-            <Award className="size-4 shrink-0 text-mint-foreground" />
-            <span className="font-semibold">Nível {level.level.toLocaleString("pt-BR")}</span>
-          </p>
-        </div>
-        <div className="mt-3 flex items-center gap-3">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-mint"
-              style={{ width: `${level.progress * 100}%` }}
-            />
-          </div>
-          <p className="shrink-0 text-xs text-muted-foreground">
-            {studyLogs.length === 0
-              ? "Registre sua primeira sessão para começar a pontuar."
-              : `Faltam ${level.remaining.toLocaleString("pt-BR")} XP para o nível ${level.nextLevel.toLocaleString("pt-BR")}`}
-          </p>
-        </div>
-      </section>
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Timer} label="Total estudado" value={formatSeconds(totalSeconds)} />
-        <StatCard icon={Flame} label="Dias estudando" value={`${streak} dia(s)`} />
+        <StatCard icon={Flame} label="Dias seguidos" value={`${streak} dia(s)`} />
         <StatCard icon={Layers} label="Ciclos completos" value={String(totalCycles)} />
         <StatCard
           icon={Target}
