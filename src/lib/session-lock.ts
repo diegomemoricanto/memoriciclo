@@ -9,23 +9,41 @@ import { supabase } from "@/integrations/supabase/client";
  */
 
 const LOCAL_KEY = "painel-estudos-session-lock";
+const HOLDER_KEY = "painel-estudos-session-holder";
 const LOCAL_STALE_MS = 30_000;
-const REMOTE_STALE_MS = 90_000;
+const REMOTE_STALE_MS = 45_000;
 export const LOCK_HEARTBEAT_MS = 15_000;
 
 type LocalLock = {
   holderId: string;
   sessionId: string;
   heartbeatAt: number;
+  userId?: string | null;
 };
 
 let holderId = "";
 export function getHolderId() {
   if (!holderId) {
-    holderId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    if (typeof window !== "undefined") {
+      try {
+        holderId = window.sessionStorage.getItem(HOLDER_KEY) ?? "";
+      } catch {
+        /* sessionStorage indisponível — usa identidade somente em memória */
+      }
+    }
+    if (!holderId) {
+      holderId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      if (typeof window !== "undefined") {
+        try {
+          window.sessionStorage.setItem(HOLDER_KEY, holderId);
+        } catch {
+          /* sessionStorage indisponível — a expiração ainda evita trava permanente */
+        }
+      }
+    }
   }
   return holderId;
 }
@@ -65,7 +83,8 @@ export async function acquireSessionLock(
   const now = Date.now();
 
   const local = readLocal();
-  if (local && local.holderId !== me && now - local.heartbeatAt < LOCAL_STALE_MS) {
+  const sameUser = !local?.userId || local.userId === userId;
+  if (local && sameUser && local.holderId !== me && now - local.heartbeatAt < LOCAL_STALE_MS) {
     return { ok: false, reason: "tab", sessionId: local.sessionId ?? null };
   }
 
@@ -93,14 +112,14 @@ export async function acquireSessionLock(
     );
   }
 
-  writeLocal({ holderId: me, sessionId, heartbeatAt: now });
+  writeLocal({ holderId: me, sessionId, heartbeatAt: now, userId });
   return { ok: true };
 }
 
 /** renova a trava enquanto o cronômetro está aberto */
 export async function heartbeatSessionLock(userId: string | null, sessionId: string) {
   const me = getHolderId();
-  writeLocal({ holderId: me, sessionId, heartbeatAt: Date.now() });
+  writeLocal({ holderId: me, sessionId, heartbeatAt: Date.now(), userId });
   if (!userId) return;
   await supabase
     .from("study_session_locks")
@@ -121,4 +140,12 @@ export async function releaseSessionLock(userId: string | null) {
     .eq("user_id", userId)
     .eq("holder_id", me)
     .then(() => undefined);
+}
+
+/** remove uma trava abandonada quando o usuário confirma o desbloqueio */
+export async function forceReleaseSessionLock(userId: string | null) {
+  writeLocal(null);
+  if (!userId) return;
+  const { error } = await supabase.from("study_session_locks").delete().eq("user_id", userId);
+  if (error) throw error;
 }
