@@ -392,12 +392,9 @@ function DashboardInner() {
 
       {activeSession && (
         <ErrorBoundary
-          key={activeSession.id}
-          message="Ocorreu um problema ao atualizar o cronômetro, tente fechar e abrir a sessão novamente."
-          onReset={() => {
-            setActiveId(null);
-            setLiveSeconds(null);
-          }}
+          key={`${activeSession.id}:${timerRetry}`}
+          message="Ocorreu um problema ao desenhar o cronômetro. Toque em tentar novamente para continuar de onde parou — nada foi perdido."
+          onReset={() => setTimerRetry((n) => n + 1)}
         >
           <TimerDialog
             session={activeSession}
