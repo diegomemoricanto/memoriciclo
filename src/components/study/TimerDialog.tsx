@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlarmClock, Brain, Check, Pause, Play, TimerIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MindMapPanel } from "./MindMapPanel";
@@ -284,7 +285,7 @@ export function TimerDialog({
 
   const progress = Math.min(100, (elapsed / targetSeconds) * 100);
 
-  return (
+  const dialog = (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4"
       role="dialog"
@@ -496,4 +497,9 @@ export function TimerDialog({
       </div>
     </div>
   );
+
+  /* fora da árvore do app: extensões de navegador que alteram o DOM da página
+     não conseguem derrubar o cronômetro durante pausas/retomadas */
+  if (typeof document === "undefined") return dialog;
+  return createPortal(dialog, document.body);
 }

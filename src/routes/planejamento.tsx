@@ -87,6 +87,8 @@ function DashboardInner() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [liveSeconds, setLiveSeconds] = useState<number | null>(null);
+  /** remonta o cronômetro após uma falha de renderização, sem encerrar a sessão */
+  const [timerRetry, setTimerRetry] = useState(0);
   const { userId } = useAuth();
 
   /* mantém a trava viva enquanto o cronômetro está aberto e a libera ao sair */
@@ -392,12 +394,9 @@ function DashboardInner() {
 
       {activeSession && (
         <ErrorBoundary
-          key={activeSession.id}
-          message="Ocorreu um problema ao atualizar o cronômetro, tente fechar e abrir a sessão novamente."
-          onReset={() => {
-            setActiveId(null);
-            setLiveSeconds(null);
-          }}
+          key={`${activeSession.id}:${timerRetry}`}
+          message="Ocorreu um problema ao desenhar o cronômetro. Toque em tentar novamente para continuar de onde parou — nada foi perdido."
+          onReset={() => setTimerRetry((n) => n + 1)}
         >
           <TimerDialog
             session={activeSession}
