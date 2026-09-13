@@ -497,4 +497,9 @@ export function TimerDialog({
       </div>
     </div>
   );
+
+  /* fora da árvore do app: extensões de navegador que alteram o DOM da página
+     não conseguem derrubar o cronômetro durante pausas/retomadas */
+  if (typeof document === "undefined") return dialog;
+  return createPortal(dialog, document.body);
 }
