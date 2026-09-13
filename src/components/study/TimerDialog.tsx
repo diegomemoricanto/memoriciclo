@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlarmClock, Brain, Check, Pause, Play, TimerIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MindMapPanel } from "./MindMapPanel";
