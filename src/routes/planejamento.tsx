@@ -87,6 +87,8 @@ function DashboardInner() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [liveSeconds, setLiveSeconds] = useState<number | null>(null);
+  /** remonta o cronômetro após uma falha de renderização, sem encerrar a sessão */
+  const [timerRetry, setTimerRetry] = useState(0);
   const { userId } = useAuth();
 
   /* mantém a trava viva enquanto o cronômetro está aberto e a libera ao sair */
